@@ -274,25 +274,37 @@ document.getElementById('location').addEventListener('change', function() {
     });
 }
 
-    // จัดการการส่งฟอร์ม
-    document.getElementById('queueForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        fetch('save_queue.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(data => {
-            document.body.innerHTML += data; // แสดง SweetAlert จาก save_queue.php
-            if (data.includes('icon: "success"')) {
-                setTimeout(() => {
-                    filterData(); // รีเฟรชตาราง
-                    loadCars();   // รีเฟรชยานพาหนะ
-                }, 2000);
-            }
-        });
+document.getElementById('queueForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    fetch('save_queue.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log("Raw response:", data); // Debug: ดู response ดิบ
+        // แยก <script> จาก HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data, 'text/html');
+        const scripts = doc.getElementsByTagName('script');
+        for (let script of scripts) {
+            const scriptElement = document.createElement('script');
+            scriptElement.textContent = script.textContent;
+            document.body.appendChild(scriptElement);
+        }
+        // ถ้าเป็น success รีเฟรชตาราง
+        if (data.includes('icon: "success"')) {
+            setTimeout(() => {
+                filterData();
+                loadCars();
+            }, 2000);
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
     });
+});
 
     // โหลดข้อมูลเริ่มต้น
     window.onload = function() {
