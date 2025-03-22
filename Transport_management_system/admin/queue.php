@@ -111,6 +111,10 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         .badge-danger {
             background: #dc3545;
         }
+        #driverInfo {
+            font-size: 0.9rem;
+            color: #555;
+        }
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -137,7 +141,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                     <!-- เลือกจังหวัด -->
                     <div class="col-md-4 col-12">
                         <label for="province" class="form-label">จังหวัด</label>
-                        <select name="province" id="province" class="form-select" onchange="loadAmphur()">
+                        <select name="province" id="province" class="form-select" onchange="loadAmphur(); loadCars();">
                             <option value="">เลือกจังหวัด</option>
                             <?php foreach ($provinces as $province): ?>
                                 <option value="<?= $province['PROVINCE_ID'] ?>">
@@ -150,7 +154,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                     <!-- เลือกอำเภอ -->
                     <div class="col-md-4 col-12">
                         <label for="amphur" class="form-label">อำเภอ</label>
-                        <select name="amphur" id="amphur" class="form-select" onchange="loadLocation()">
+                        <select name="amphur" id="amphur" class="form-select" onchange="loadLocation(); loadCars();">
                             <option value="">เลือกอำเภอ</option>
                         </select>
                     </div>
@@ -165,10 +169,16 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 
                     <!-- เลือกยานพาหนะ -->
                     <div class="col-md-4 col-12">
-                        <label for="car" class="form-label">ยานพาหนะ</label>
-                        <select name="car" id="car" class="form-select">
+                        <label for="car" class="form-label">ยานพาหนะ (จำนวนที่นั่ง)</label>
+                        <select name="car" id="car" class="form-select" onchange="showDriverInfo()">
                             <option value="">เลือกยานพาหนะ</option>
                         </select>
+                    </div>
+
+                    <!-- ข้อมูลคนขับ -->
+                    <div class="col-md-4 col-12">
+                        <label class="form-label">ข้อมูลคนขับ</label>
+                        <div id="driverInfo"></div>
                     </div>
                 </div>
             </div>
@@ -263,27 +273,58 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         filterData();
     });
 
+    let carData = []; // ตัวแปรเก็บข้อมูลรถทั้งหมด
+
     function loadCars() {
         const datePicker = document.getElementById('date_picker').value;
+        const provinceID = document.getElementById('province').value;
+        const amphurID = document.getElementById('amphur').value;
         const carSelect = document.getElementById('car');
+
         if (!datePicker) {
             carSelect.innerHTML = '<option value="">เลือกยานพาหนะ</option>';
+            document.getElementById('driverInfo').innerHTML = '';
             return;
         }
 
         const date = datePicker.split(" to ")[0];
+        let url = `get_available_cars.php?date=${date}`;
+        if (provinceID) url += `&province_id=${provinceID}`;
+        if (amphurID) url += `&amphur_id=${amphurID}`;
+
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', `get_available_cars.php?date=${date}`, true);
+        xhr.open('GET', url, true);
         xhr.onload = function() {
             if (xhr.status === 200) {
-                const cars = JSON.parse(xhr.responseText);
+                carData = JSON.parse(xhr.responseText);
                 carSelect.innerHTML = '<option value="">เลือกยานพาหนะ</option>';
-                cars.forEach(car => {
-                    carSelect.innerHTML += `<option value="${car.car_id}">${car.car_license} - ${car.car_brand}</option>`;
+                carData.forEach(car => {
+                    carSelect.innerHTML += `<option value="${car.car_id}">${car.car_license} - ${car.car_brand} (${car.car_seat} ที่นั่ง)</option>`;
                 });
+                showDriverInfo(); // แสดงข้อมูลคนขับถ้ามีการเลือกอยู่แล้ว
             }
         };
         xhr.send();
+    }
+
+    function showDriverInfo() {
+        const carSelect = document.getElementById('car');
+        const driverInfoDiv = document.getElementById('driverInfo');
+        const selectedCarId = carSelect.value;
+
+        if (!selectedCarId) {
+            driverInfoDiv.innerHTML = 'ไม่มีการเลือกยานพาหนะ';
+            return;
+        }
+
+        const selectedCar = carData.find(car => car.car_id == selectedCarId);
+        if (selectedCar) {
+            const driverName = `${selectedCar.driver_name || 'ไม่ระบุ'} ${selectedCar.driver_lastname || ''}`.trim();
+            const driverLocation = `${selectedCar.driver_province_name || 'ไม่ระบุ'} - ${selectedCar.driver_amphur_name || 'ไม่ระบุ'}`;
+            driverInfoDiv.innerHTML = `คนขับ: ${driverName} <br> ที่อยู่: ${driverLocation}`;
+        } else {
+            driverInfoDiv.innerHTML = 'ไม่พบข้อมูลคนขับ';
+        }
     }
 
     function filterData() {
