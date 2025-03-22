@@ -43,8 +43,7 @@ $sql = "
         q.created_at, 
         q.year, 
         q.status_car, 
-        q.queue_date,
-        GROUP_CONCAT(CONCAT(s.stu_name, ' ', s.stu_lastname) SEPARATOR ', ') AS students
+        q.queue_date
     FROM queue q
     LEFT JOIN province p ON q.province_id = p.PROVINCE_ID
     LEFT JOIN amphur a ON q.amphur_id = a.AMPHUR_ID
@@ -60,6 +59,69 @@ $sql .= " GROUP BY q.queue_id ORDER BY q.queue_date DESC, q.created_at DESC";
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// ลบคิว
+if (isset($_POST['delete_queue'])) {
+    $queue_id = $_POST['queue_id'];
+    $conn->beginTransaction();
+    $stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = ?");
+    $stmt->execute([$queue_id]);
+    $stmt = $conn->prepare("DELETE FROM queue WHERE queue_id = ?");
+    $stmt->execute([$queue_id]);
+    $conn->commit();
+    header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
+    exit;
+}
+
+// ลบนักเรียน
+if (isset($_POST['delete_student'])) {
+    $queue_id = $_POST['queue_id'];
+    $student_id = $_POST['student_id'];
+    $stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = ? AND student_id = ?");
+    $stmt->execute([$queue_id, $student_id]);
+    header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
+    exit;
+}
+
+// เพิ่มนักเรียน
+if (isset($_POST['add_student'])) {
+    $queue_id = $_POST['queue_id'];
+    $student_id = $_POST['student_id'];
+    // ตรวจสอบว่านักเรียนอยู่ในคิวนี้แล้วหรือไม่
+    $check_stmt = $conn->prepare("SELECT COUNT(*) FROM queue_student WHERE queue_id = ? AND student_id = ?");
+    $check_stmt->execute([$queue_id, $student_id]);
+    if ($check_stmt->fetchColumn() == 0) {
+        $stmt = $conn->prepare("INSERT INTO queue_student (queue_id, student_id) VALUES (?, ?)");
+        $stmt->execute([$queue_id, $student_id]);
+    }
+    header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
+    exit;
+}
+
+// แก้ไขนักเรียน
+if (isset($_POST['edit_student'])) {
+    $queue_id = $_POST['queue_id'];
+    $old_student_id = $_POST['old_student_id'];
+    $new_student_id = $_POST['new_student_id'];
+    $stmt = $conn->prepare("UPDATE queue_student SET student_id = ? WHERE queue_id = ? AND student_id = ?");
+    $stmt->execute([$new_student_id, $queue_id, $old_student_id]);
+    header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
+    exit;
+}
+
+// ดึงรายชื่อนักเรียนทั้งหมดสำหรับ dropdown (กรองนักเรียนที่ยังไม่อยู่ในคิว)
+function getAvailableStudents($conn, $queue_id) {
+    $stmt = $conn->prepare("
+        SELECT s.stu_ID, s.stu_name, s.stu_lastname 
+        FROM students s
+        WHERE s.stu_ID NOT IN (
+            SELECT student_id FROM queue_student WHERE queue_id = ?
+        )
+        ORDER BY s.stu_name
+    ");
+    $stmt->execute([$queue_id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 
 <!DOCTYPE html>
@@ -71,93 +133,30 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.0/dist/sweetalert2.all.min.js"></script>
-    <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            background: #f5f6f5;
-            font-family: 'Kanit', sans-serif;
-            min-height: 100vh;
-        }
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-        }
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            background: #fff;
-            padding: 15px;
-        }
-        .card h3 {
-            color: #333;
-            font-weight: 600;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 5px;
-        }
-        .form-label {
-            font-weight: 500;
-            color: #444;
-        }
-        .form-select, .form-control {
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-        .form-select:focus, .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
-        }
-        .btn-primary {
-            border-radius: 8px;
-            padding: 8px 20px;
-            background: #007bff;
-            border: none;
-            transition: background 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .btn-secondary {
-            border-radius: 8px;
-            padding: 8px 20px;
-            background: #6c757d;
-            border: none;
-            transition: background 0.3s ease;
-        }
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        .table {
-            border-radius: 5px;
-            overflow: hidden;
-            background: #fff;
-        }
-        .table thead th {
-            background: #003087;
-            color: #fff;
-            text-align: center;
-            padding: 12px;
-        }
-        .table tbody tr:hover {
-            background: #f9f9f9;
-        }
-        .table td {
-            vertical-align: middle;
-        }
-        .badge-success {
-            background: #28a745;
-        }
-        .badge-warning {
-            background: #ffc107;
-        }
-        @media (max-width: 768px) {
-            .content {
-                margin-left: 0;
-                padding: 15px;
-            }
-        }
+        body { background: #f5f6f5; font-family: 'Kanit', sans-serif; min-height: 100vh; }
+        .content { margin-left: 250px; padding: 20px; transition: margin-left 0.3s ease; }
+        .card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background: #fff; padding: 15px; }
+        .card h3 { color: #333; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; }
+        .form-label { font-weight: 500; color: #444; }
+        .form-select, .form-control { border-radius: 5px; border: 1px solid #ccc; padding: 8px; }
+        .form-select:focus, .form-control:focus { border-color: #007bff; box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); }
+        .btn-primary { border-radius: 8px; padding: 8px 20px; background: #007bff; border: none; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { border-radius: 8px; padding: 8px 20px; background: #6c757d; border: none; }
+        .btn-secondary:hover { background: #5a6268; }
+        .table thead th { background: #003087; color: #fff; text-align: center; }
+        .table tbody tr:hover { background: #f9f9f9; }
+        .badge-success { background: #28a745; }
+        .badge-warning { background: #ffc107; }
+        .btn-toggle { font-size: 0.9rem; padding: 2px 8px; }
+        .student-table { width: 100%; border-collapse: collapse; }
+        .student-table th, .student-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .student-table th { background: #e9ecef; }
+        .btn-sm { margin: 2px; }
+        @media (max-width: 768px) { .content { margin-left: 0; padding: 15px; } }
     </style>
 </head>
 <body>
@@ -165,7 +164,7 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="content" id="content">
     <div class="container mt-4">
         <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">รายการคิวรถ</h2>
-        
+
         <!-- Filter Dropdown และ Search -->
         <div class="card mb-4">
             <h3 class="mb-3">ตัวกรองข้อมูล</h3>
@@ -253,11 +252,12 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <th>รายชื่อนักเรียน</th>
                             <th>วันที่สร้าง</th>
                             <th>ปี</th>
+                            <th>จัดการ</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (count($queues) > 0): ?>
-                            <?php foreach ($queues as $queue): ?>
+                            <?php foreach ($queues as $index => $queue): ?>
                                 <tr>
                                     <td><?= $queue['queue_id'] ?></td>
                                     <td><?= $queue['queue_date'] ? date('d/m/Y', strtotime($queue['queue_date'])) : 'ไม่ระบุ' ?></td>
@@ -265,24 +265,123 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <td><?= $queue['amphur_name'] ?></td>
                                     <td><?= $queue['location'] ?></td>
                                     <td><?= $queue['car_license'] . ' - ' . $queue['car_brand'] ?></td>
+                                    <td><span class="badge <?= $queue['status_car'] === 'ว่าง' ? 'badge-success' : 'badge-warning' ?>"><?= $queue['status_car'] ?></span></td>
                                     <td>
-                                        <span class="badge <?= $queue['status_car'] === 'ว่าง' ? 'badge-success' : 'badge-warning' ?>">
-                                            <?= $queue['status_car'] ?>
-                                        </span>
+                                        <button class="btn btn-primary btn-toggle" data-bs-toggle="modal" data-bs-target="#studentModal" 
+                                                onclick="showStudents(<?= $queue['queue_id'] ?>)">ดูรายชื่อ</button>
                                     </td>
-                                    <td><?= $queue['students'] ?: 'ไม่มีนักเรียน' ?></td>
                                     <td><?= date('d/m/Y H:i:s', strtotime($queue['created_at'])) ?></td>
                                     <td><?= $queue['year'] ?: 'ไม่ระบุ' ?></td>
+                                    <td>
+                                        <form method="POST" style="display:inline;">
+                                            <input type="hidden" name="queue_id" value="<?= $queue['queue_id'] ?>">
+                                            <button type="submit" name="delete_queue" class="btn btn-danger btn-sm" onclick="return confirm('ยืนยันการลบคิวนี้?')">ลบคิว</button>
+                                        </form>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <tr>
-                                <td colspan="10" class="text-center text-muted">ไม่พบข้อมูลคิวรถ</td>
-                            </tr>
+                            <tr><td colspan="11" class="text-center text-muted">ไม่พบข้อมูลคิวรถ</td></tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal รายชื่อนักเรียน -->
+<div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="studentModalLabel">รายชื่อนักเรียนในคิว</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="current_queue_id">
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>รหัสนักเรียน</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentTableBody">
+                        <!-- โหลดข้อมูลนักเรียนด้วย AJAX -->
+                    </tbody>
+                </table>
+                <button class="btn btn-success btn-sm mt-3" data-bs-toggle="modal" data-bs-target="#addStudentModal" 
+                        onclick="setAddStudentFromModal()">เพิ่มนักเรียน</button>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal เพิ่มนักเรียน -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addStudentModalLabel">เพิ่มนักเรียน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="queue_id" id="add_queue_id">
+                    <div class="mb-3">
+                        <label for="student_id" class="form-label">เลือกนักเรียน</label>
+                        <select name="student_id" id="student_id" class="form-select" required>
+                            <option value="">-- เลือกนักเรียน --</option>
+                            <!-- โหลดนักเรียนที่ยังไม่อยู่ในคิวนี้ผ่าน JavaScript -->
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" name="add_student" class="btn btn-primary">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal แก้ไขนักเรียน -->
+<div class="modal fade" id="editStudentModal" tabindex="-1" aria-labelledby="editStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editStudentModalLabel">แก้ไขนักเรียน</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="queue_id" id="edit_queue_id">
+                    <input type="hidden" name="old_student_id" id="old_student_id">
+                    <div class="mb-3">
+                        <label for="current_student" class="form-label">นักเรียนปัจจุบัน</label>
+                        <input type="text" id="current_student" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_student_id" class="form-label">เลือกนักเรียนใหม่</label>
+                        <select name="new_student_id" id="new_student_id" class="form-select" required>
+                            <option value="">-- เลือกนักเรียน --</option>
+                            <?php $all_students = $conn->query("SELECT stu_ID, stu_name, stu_lastname FROM students ORDER BY stu_name")->fetchAll(PDO::FETCH_ASSOC); ?>
+                            <?php foreach ($all_students as $student): ?>
+                                <option value="<?= $student['stu_ID'] ?>"><?= $student['stu_name'] . ' ' . $student['stu_lastname'] ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" name="edit_student" class="btn btn-primary">บันทึก</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -348,15 +447,47 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('filterForm').submit();
     }
 
-    // โหลดอำเภอและจุดขึ้นรถเริ่มต้นถ้ามี province_id หรือ amphur_id จาก GET
+    // โหลดอำเภอและจุดขึ้นรถเริ่มต้น
     window.onload = function() {
         <?php if (isset($_GET['province_id']) && !empty($_GET['province_id'])): ?>
             loadAmphur();
             <?php if (isset($_GET['amphur_id']) && !empty($_GET['amphur_id'])): ?>
-                setTimeout(loadLocation, 100); // รอให้ loadAmphur เสร็จก่อน
+                setTimeout(loadLocation, 100);
             <?php endif; ?>
         <?php endif; ?>
     };
+
+    // แสดงรายชื่อนักเรียนใน Modal
+    function showStudents(queueId) {
+        document.getElementById('current_queue_id').value = queueId;
+        fetch('get_students.php?queue_id=' + queueId)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('studentTableBody').innerHTML = data;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // ตั้งค่า Modal เพิ่มนักเรียนและโหลดรายชื่อที่ยังไม่อยู่ในคิว
+    function setAddStudentFromModal() {
+        const queueId = document.getElementById('current_queue_id').value;
+        document.getElementById('add_queue_id').value = queueId;
+
+        // โหลดรายชื่อนักเรียนที่ยังไม่อยู่ในคิวนี้
+        fetch(`get_available_students.php?queue_id=${queueId}`)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('student_id').innerHTML = '<option value="">-- เลือกนักเรียน --</option>' + data;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    // ตั้งค่า Modal แก้ไขนักเรียน
+    function setEditStudent(queueId, studentId, studentName) {
+        document.getElementById('edit_queue_id').value = queueId;
+        document.getElementById('old_student_id').value = studentId;
+        document.getElementById('current_student').value = studentName;
+    }
 </script>
 </body>
 </html>
