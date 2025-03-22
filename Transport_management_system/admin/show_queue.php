@@ -1,5 +1,11 @@
 <?php
+session_start();
 require_once 'config/condb.php';
+
+// เปิดการแสดงข้อผิดพลาดเพื่อ debug (สามารถปิดได้เมื่อใช้งานจริง)
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // ดึงข้อมูลตัวเลือกสำหรับ dropdown จังหวัด
 $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM province ORDER BY PROVINCE_NAME")->fetchAll(PDO::FETCH_ASSOC);
@@ -64,11 +70,17 @@ $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
 if (isset($_POST['delete_queue'])) {
     $queue_id = $_POST['queue_id'];
     $conn->beginTransaction();
-    $stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = ?");
-    $stmt->execute([$queue_id]);
-    $stmt = $conn->prepare("DELETE FROM queue WHERE queue_id = ?");
-    $stmt->execute([$queue_id]);
-    $conn->commit();
+    try {
+        $stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = ?");
+        $stmt->execute([$queue_id]);
+        $stmt = $conn->prepare("DELETE FROM queue WHERE queue_id = ?");
+        $stmt->execute([$queue_id]);
+        $conn->commit();
+        $_SESSION['delete_queue_success'] = true;
+    } catch (Exception $e) {
+        $conn->rollBack();
+        $_SESSION['delete_queue_error'] = "เกิดข้อผิดพลาดในการลบคิว: " . $e->getMessage();
+    }
     header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
     exit;
 }
@@ -78,7 +90,11 @@ if (isset($_POST['delete_student'])) {
     $queue_id = $_POST['queue_id'];
     $student_id = $_POST['student_id'];
     $stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = ? AND student_id = ?");
-    $stmt->execute([$queue_id, $student_id]);
+    if ($stmt->execute([$queue_id, $student_id])) {
+        $_SESSION['delete_student_success'] = true;
+    } else {
+        $_SESSION['delete_student_error'] = "เกิดข้อผิดพลาดในการลบนักเรียน";
+    }
     header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
     exit;
 }
@@ -87,12 +103,15 @@ if (isset($_POST['delete_student'])) {
 if (isset($_POST['add_student'])) {
     $queue_id = $_POST['queue_id'];
     $student_id = $_POST['student_id'];
-    // ตรวจสอบว่านักเรียนอยู่ในคิวนี้แล้วหรือไม่
     $check_stmt = $conn->prepare("SELECT COUNT(*) FROM queue_student WHERE queue_id = ? AND student_id = ?");
     $check_stmt->execute([$queue_id, $student_id]);
     if ($check_stmt->fetchColumn() == 0) {
         $stmt = $conn->prepare("INSERT INTO queue_student (queue_id, student_id) VALUES (?, ?)");
-        $stmt->execute([$queue_id, $student_id]);
+        if ($stmt->execute([$queue_id, $student_id])) {
+            $_SESSION['add_success'] = true;
+        } else {
+            $_SESSION['add_error'] = "เกิดข้อผิดพลาดในการเพิ่มนักเรียน";
+        }
     }
     header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
     exit;
@@ -104,7 +123,11 @@ if (isset($_POST['edit_student'])) {
     $old_student_id = $_POST['old_student_id'];
     $new_student_id = $_POST['new_student_id'];
     $stmt = $conn->prepare("UPDATE queue_student SET student_id = ? WHERE queue_id = ? AND student_id = ?");
-    $stmt->execute([$new_student_id, $queue_id, $old_student_id]);
+    if ($stmt->execute([$new_student_id, $queue_id, $old_student_id])) {
+        $_SESSION['edit_success'] = true;
+    } else {
+        $_SESSION['edit_error'] = "เกิดข้อผิดพลาดในการแก้ไขนักเรียน";
+    }
     header("Location: show_queue.php?" . $_SERVER['QUERY_STRING']);
     exit;
 }
@@ -273,9 +296,9 @@ function getAvailableStudents($conn, $queue_id) {
                                     <td><?= date('d/m/Y H:i:s', strtotime($queue['created_at'])) ?></td>
                                     <td><?= $queue['year'] ?: 'ไม่ระบุ' ?></td>
                                     <td>
-                                        <form method="POST" style="display:inline;">
+                                        <form method="POST" id="deleteQueueForm_<?= $queue['queue_id'] ?>" style="display:inline;">
                                             <input type="hidden" name="queue_id" value="<?= $queue['queue_id'] ?>">
-                                            <button type="submit" name="delete_queue" class="btn btn-danger btn-sm" onclick="return confirm('ยืนยันการลบคิวนี้?')">ลบคิว</button>
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeleteQueue(<?= $queue['queue_id'] ?>)">ลบคิว</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -447,7 +470,43 @@ function getAvailableStudents($conn, $queue_id) {
         document.getElementById('filterForm').submit();
     }
 
-    // โหลดอำเภอและจุดขึ้นรถเริ่มต้น
+    // ฟังก์ชันยืนยันการลบคิวด้วย SweetAlert
+    function confirmDeleteQueue(queueId) {
+        Swal.fire({
+            title: 'ยืนยันการลบคิว?',
+            text: "คุณต้องการลบคิวนี้หรือไม่ การดำเนินการนี้ไม่สามารถย้อนกลับได้!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteQueueForm_' + queueId).submit();
+            }
+        });
+    }
+
+    // ฟังก์ชันยืนยันการลบนักเรียนด้วย SweetAlert
+    function confirmDeleteStudent(queueId, studentId) {
+        Swal.fire({
+            title: 'ยืนยันการลบนักเรียน?',
+            text: "คุณต้องการลบนักเรียนนี้ออกจากคิวหรือไม่?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'ใช่, ลบเลย!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('deleteStudentForm_' + queueId + '_' + studentId).submit();
+            }
+        });
+    }
+
+    // โหลดอำเภอและจุดขึ้นรถเริ่มต้น + SweetAlert
     window.onload = function() {
         <?php if (isset($_GET['province_id']) && !empty($_GET['province_id'])): ?>
             loadAmphur();
@@ -455,6 +514,93 @@ function getAvailableStudents($conn, $queue_id) {
                 setTimeout(loadLocation, 100);
             <?php endif; ?>
         <?php endif; ?>
+
+        // ตรวจสอบ session เพื่อแสดง SweetAlert
+        <?php
+        // เพิ่มนักเรียน
+        if (isset($_SESSION['add_success']) && $_SESSION['add_success']) {
+            echo "Swal.fire({
+                icon: 'success',
+                title: 'เพิ่มนักเรียนสำเร็จ',
+                text: 'นักเรียนถูกเพิ่มเข้าในคิวเรียบร้อยแล้ว',
+                showConfirmButton: false,
+                timer: 1500
+            });";
+            unset($_SESSION['add_success']);
+        }
+        if (isset($_SESSION['add_error'])) {
+            echo "Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: '" . $_SESSION['add_error'] . "',
+                showConfirmButton: true
+            });";
+            unset($_SESSION['add_error']);
+        }
+
+        // ลบคิว
+        if (isset($_SESSION['delete_queue_success']) && $_SESSION['delete_queue_success']) {
+            echo "Swal.fire({
+                icon: 'success',
+                title: 'ลบคิวสำเร็จ',
+                text: 'คิวถูกลบออกเรียบร้อยแล้ว',
+                showConfirmButton: false,
+                timer: 1500
+            });";
+            unset($_SESSION['delete_queue_success']);
+        }
+        if (isset($_SESSION['delete_queue_error'])) {
+            echo "Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: '" . $_SESSION['delete_queue_error'] . "',
+                showConfirmButton: true
+            });";
+            unset($_SESSION['delete_queue_error']);
+        }
+
+        // ลบนักเรียน
+        if (isset($_SESSION['delete_student_success']) && $_SESSION['delete_student_success']) {
+            echo "Swal.fire({
+                icon: 'success',
+                title: 'ลบนักเรียนสำเร็จ',
+                text: 'นักเรียนถูกลบออกจากคิวเรียบร้อยแล้ว',
+                showConfirmButton: false,
+                timer: 1500
+            });";
+            unset($_SESSION['delete_student_success']);
+        }
+        if (isset($_SESSION['delete_student_error'])) {
+            echo "Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: '" . $_SESSION['delete_student_error'] . "',
+                showConfirmButton: true
+            });";
+            unset($_SESSION['delete_student_error']);
+        }
+
+        // แก้ไขนักเรียน
+        if (isset($_SESSION['edit_success']) && $_SESSION['edit_success']) {
+            echo "Swal.fire({
+                icon: 'success',
+                title: 'แก้ไขนักเรียนสำเร็จ',
+                text: 'ข้อมูลนักเรียนถูกแก้ไขเรียบร้อยแล้ว',
+                showConfirmButton: false,
+                timer: 1500
+            });";
+            unset($_SESSION['edit_success']);
+        }
+        if (isset($_SESSION['edit_error'])) {
+            echo "Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: '" . $_SESSION['edit_error'] . "',
+                showConfirmButton: true
+            });";
+            unset($_SESSION['edit_error']);
+        }
+        ?>
     };
 
     // แสดงรายชื่อนักเรียนใน Modal
@@ -473,7 +619,6 @@ function getAvailableStudents($conn, $queue_id) {
         const queueId = document.getElementById('current_queue_id').value;
         document.getElementById('add_queue_id').value = queueId;
 
-        // โหลดรายชื่อนักเรียนที่ยังไม่อยู่ในคิวนี้
         fetch(`get_available_students.php?queue_id=${queueId}`)
             .then(response => response.text())
             .then(data => {
