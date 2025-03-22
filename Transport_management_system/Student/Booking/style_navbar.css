@@ -1,0 +1,131 @@
+
+        /* Reset CSS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin-top: 60px; /* To prevent navbar from covering content */
+            background-color: #f4f4f4; /* สีพื้นหลังเพื่อให้ดูตัดกับ navbar */
+        }
+
+        nav {
+            background-color: rgba(255, 255, 255, 0.9); /* Background ใส */
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            padding: 10px 20px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; /* ลูกเล่นในการเปลี่ยนพื้นหลัง */
+        }
+
+        nav.scrolled {
+            background-color: rgba(255, 255, 255, 1); /* เปลี่ยนสีพื้นหลังเมื่อลากลง */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* เงาเมื่อเลื่อนหน้า */
+        }
+
+        .navbar-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto; /* จัดให้อยู่กลาง */
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 18px;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .navbar-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .navbar-links a {
+            color: #333;
+            text-decoration: none;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .navbar-links a:hover {
+            color: #fff;
+            background-color: #007bff;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-button {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            color: #333;
+        }
+
+        .dropdown-button img {
+            border-radius: 50%;
+            margin-right: 10px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .dropdown-button .fa-caret-down {
+            margin-left: 5px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #ffffff; /* เปลี่ยนพื้นหลังให้เป็นสีขาวเพื่อให้ดูสะอาดตา */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            display: none;
+            min-width: 200px;
+            padding: 10px;
+            z-index: 1;
+        }
+
+        .dropdown-menu .menu-item {
+            color: #333; /* สีข้อความให้ชัดเจน */
+            text-decoration: none;
+            display: block;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background-color: #f8f9fa; /* พื้นหลังของเมนู */
+            transition: background-color 0.3s ease;
+            border-bottom: 1px solid #ddd; /* เส้นขั้นระหว่างเมนู */
+        }
+
+        .dropdown-menu .menu-item:last-child {
+            border-bottom: none; /* ลบเส้นขั้นที่เมนูสุดท้าย */
+        }
+
+        .dropdown-menu .menu-item:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .dropdown.show .dropdown-menu {
+            display: block;
+        }
+
+ 
