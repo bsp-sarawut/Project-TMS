@@ -22,46 +22,40 @@ $sql = "
 
 $params = [];
 
-// ✅ กรองวันที่ (รองรับวันที่เดียวและช่วงวันที่)
 if ($date_picker) {
     $dates = explode(" to ", $date_picker);
     if (count($dates) === 2) {
         $startDay = date('d', strtotime($dates[0]));
         $endDay = date('d', strtotime($dates[1]));
-        $sql .= " AND (FIND_IN_SET(:start_day, ts.available_dates) OR FIND_IN_SET(:end_day, ts.available_dates))";
+        $sql .= " AND (FIND_IN_SET(:start_day, REPLACE(ts.available_dates, ' ', '')) OR FIND_IN_SET(:end_day, REPLACE(ts.available_dates, ' ', '')))";
         $params[':start_day'] = $startDay;
         $params[':end_day'] = $endDay;
     } else {
         $day = date('d', strtotime($date_picker));
-        $sql .= " AND FIND_IN_SET(:day, ts.available_dates)";
+        $sql .= " AND FIND_IN_SET(:day, REPLACE(ts.available_dates, ' ', ''))";
         $params[':day'] = $day;
     }
 }
 
-// ✅ กรองจังหวัด
 if ($province_id) {
     $sql .= " AND r.province = :province_id";
     $params[':province_id'] = $province_id;
 }
 
-// ✅ กรองอำเภอ
 if ($amphur_id) {
     $sql .= " AND r.amphur = :amphur_id";
     $params[':amphur_id'] = $amphur_id;
 }
 
-// ✅ กรองจุดขึ้นรถ (ใช้ LIKE สำหรับการค้นหาหลายคำ)
 if ($location) {
     $sql .= " AND r.location LIKE :location";
-    $params[':location'] = "%" . $location . "%"; // ใช้ % เพื่อรองรับการค้นหาหลายคำ
+    $params[':location'] = "%" . $location . "%";
 }
 
-// 🔎 ดึงข้อมูล
 $stmt = $conn->prepare($sql);
 $stmt->execute($params);
 $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// ส่งข้อมูล JSON
 header('Content-Type: application/json');
 echo json_encode($registrations);
 ?>
