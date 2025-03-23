@@ -23,7 +23,7 @@
 
             // ตรวจสอบประเภทไฟล์
             if (in_array($fileType, $allowedTypes)) {
-                $targetDir      = "uploads/";
+                $targetDir      = "uploads/route_img/";
                 $newFileName    = time() . "_" . uniqid() . "." . $fileExt; // ตั้งชื่อไฟล์ใหม่
                 $targetFilePath = $targetDir . $newFileName;
 

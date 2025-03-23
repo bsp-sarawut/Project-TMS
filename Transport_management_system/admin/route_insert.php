@@ -20,7 +20,7 @@ if (isset($_POST['submit'])) {
     } else {
         // ตรวจสอบและอัปโหลดไฟล์รูปภาพ
         if (isset($_FILES['route_image']) && $_FILES['route_image']['error'] == 0) {
-            $targetDir = "uploads/"; // โฟลเดอร์เก็บรูปภาพ
+            $targetDir = "uploads/route_img/"; // โฟลเดอร์เก็บรูปภาพ
             $fileName = basename($_FILES['route_image']['name']);
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
             $allowedTypes = ['jpg', 'jpeg', 'png', 'gif']; // นามสกุลที่อนุญาต
