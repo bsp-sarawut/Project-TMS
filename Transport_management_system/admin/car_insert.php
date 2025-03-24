@@ -2,7 +2,7 @@
 include('config/condb.php');
 session_start();
 
-if (isset($_POST['submit'])) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $car_license = $_POST['car_license'];
     $car_brand = $_POST['car_brand'];
     $car_color = $_POST['car_color'];
@@ -15,8 +15,7 @@ if (isset($_POST['submit'])) {
     $checkStmt->bindParam(':car_license', $car_license);
     $checkStmt->execute();
     if ($checkStmt->fetchColumn() > 0) {
-        $_SESSION['error'] = "หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว";
-        header("Location: car.php");
+        echo "error: หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว";
         exit();
     }
 
@@ -26,17 +25,19 @@ if (isset($_POST['submit'])) {
         $driverCheckStmt->bindParam(':driver_id', $driver_id);
         $driverCheckStmt->execute();
         if ($driverCheckStmt->fetchColumn() > 0) {
-            $_SESSION['error'] = "คนขับนี้ถูกผูกกับรถคันอื่นแล้ว";
-            header("Location: car.php");
+            echo "error: คนขับนี้ถูกผูกกับรถคันอื่นแล้ว";
             exit();
         }
     }
 
-    // ตรวจสอบและอัปโหลดรูปภาพ
+    // ตรวจสอบและอัปโหลดรูปภาพ (ถ้ามีในฟอร์ม)
     $car_image = null;
     if (isset($_FILES['car_image']) && $_FILES['car_image']['error'] == 0) {
         $car_image = $_FILES['car_image']['name'];
-        $targetDir = "uploads/";
+        $targetDir = "uploads/cars/";
+        if (!file_exists($targetDir)) {
+            mkdir($targetDir, 0777, true); // สร้างโฟลเดอร์ถ้ายังไม่มี
+        }
         $targetFile = $targetDir . basename($car_image);
         move_uploaded_file($_FILES['car_image']['tmp_name'], $targetFile);
     }
@@ -52,11 +53,12 @@ if (isset($_POST['submit'])) {
         $stmt->bindParam(':car_image', $car_image);
         $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
         $stmt->execute();
-        $_SESSION['success'] = "เพิ่มข้อมูลรถยนต์เรียบร้อยแล้ว";
+        echo "success"; // ส่งการตอบสนองกลับไปให้ AJAX
     } catch (PDOException $e) {
-        $_SESSION['error'] = "เกิดข้อผิดพลาดในการเพิ่มข้อมูล: " . $e->getMessage();
+        echo "error: เกิดข้อผิดพลาดในการเพิ่มข้อมูล: " . $e->getMessage();
     }
+} else {
+    echo "error: Invalid request";
 }
-header("Location: car.php");
 exit();
 ?>

@@ -37,19 +37,50 @@ if (isset($_GET['delete_id']) && !empty($_GET['delete_id'])) {
 
 // ค้นหาข้อมูลตามเงื่อนไข
 $searchQuery = "";
+$params = [];
 if (isset($_POST['search']) && !empty($_POST['search'])) {
     $search = $_POST['search'];
     $searchQuery = "WHERE r.location LIKE :search OR p.PROVINCE_NAME LIKE :search OR a.AMPHUR_NAME LIKE :search";
+    $params[':search'] = '%' . $search . '%';
 }
 
 if (isset($_POST['province_filter']) && !empty($_POST['province_filter'])) {
     $province_filter = $_POST['province_filter'];
     $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " r.province = :province_filter";
+    $params[':province_filter'] = $province_filter;
 }
 
 if (isset($_POST['amphur_filter']) && !empty($_POST['amphur_filter'])) {
     $amphur_filter = $_POST['amphur_filter'];
     $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " r.amphur = :amphur_filter";
+    $params[':amphur_filter'] = $amphur_filter;
+}
+
+// การแบ่งหน้า (Pagination)
+$limit = 10; // จำนวนแถวต่อหน้า
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+// นับจำนวนข้อมูลทั้งหมด
+try {
+    $countStmt = $conn->prepare("SELECT COUNT(*) FROM routes r
+                                LEFT JOIN province p ON r.province = p.PROVINCE_ID
+                                LEFT JOIN amphur a ON r.amphur = a.AMPHUR_ID
+                                $searchQuery");
+    $countStmt->execute($params);
+    $totalRows = $countStmt->fetchColumn();
+    $totalPages = ceil($totalRows / $limit);
+} catch (PDOException $e) {
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: 'เกิดข้อผิดพลาดในการนับข้อมูล: " . $e->getMessage() . "',
+                confirmButtonText: 'ตกลง'
+            });
+        });
+    </script>";
 }
 
 // ดึงข้อมูลจังหวัด
@@ -70,18 +101,19 @@ try {
     </script>";
 }
 
-// ดึงข้อมูลเส้นทาง
+// ดึงข้อมูลเส้นทางตามหน้า
 try {
     $stmt = $conn->prepare("SELECT r.*, p.PROVINCE_NAME, a.AMPHUR_NAME
                             FROM routes r
                             LEFT JOIN province p ON r.province = p.PROVINCE_ID
                             LEFT JOIN amphur a ON r.amphur = a.AMPHUR_ID
-                            $searchQuery");
-    if ($searchQuery) {
-        if (isset($search)) $stmt->bindValue(':search', '%' . $search . '%');
-        if (isset($province_filter)) $stmt->bindValue(':province_filter', $province_filter);
-        if (isset($amphur_filter)) $stmt->bindValue(':amphur_filter', $amphur_filter);
+                            $searchQuery
+                            LIMIT :limit OFFSET :offset");
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
     }
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $routes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -199,37 +231,14 @@ try {
             vertical-align: middle;
             text-align: center;
         }
-        .img-thumbnail {
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s ease;
+        .pagination {
+            justify-content: center;
+            margin-top: 20px;
         }
-        .img-thumbnail:hover {
-            transform: scale(1.05);
-        }
-        .modal-content {
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .modal-header {
-            background: #003087;
-            color: #fff;
-            border-bottom: none;
-            border-radius: 10px 10px 0 0;
-        }
-        .modal-body {
-            padding: 20px;
-        }
-        @media (max-width: 768px) {
-            .content {
-                margin-left: 0;
-                padding: 15px;
-            }
-            .btn-group {
-                flex-direction: column;
-                gap: 10px;
-            }
+        .total-count {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -244,7 +253,7 @@ try {
                 <h3 class="mb-3">ค้นหาเส้นทาง</h3>
                 <form method="POST" action="" id="searchForm">
                     <div class="row g-3">
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-4">
                             <label for="province_filter" class="form-label">จังหวัด</label>
                             <select name="province_filter" id="province_filter" class="form-select" onchange="fetchAmphurs(this.value, 'filter')">
                                 <option value="">เลือกจังหวัด</option>
@@ -255,13 +264,13 @@ try {
                                 <?php } ?>
                             </select>
                         </div>
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-4">
                             <label for="amphur_filter" class="form-label">อำเภอ</label>
                             <select name="amphur_filter" id="amphur_filter" class="form-select">
                                 <option value="">เลือกอำเภอ</option>
                             </select>
                         </div>
-                        <div class="col-md-4 col-12">
+                        <div class="col-md-4">
                             <label for="search" class="form-label">ค้นหาเส้นทาง</label>
                             <input type="text" name="search" id="search" class="form-control" placeholder="ค้นหาเส้นทาง" value="<?php echo isset($search) ? $search : ''; ?>">
                         </div>
@@ -281,6 +290,7 @@ try {
                         เพิ่มเส้นทาง
                     </button>
                 </div>
+                <div class="total-count">จำนวนเส้นทางทั้งหมด: <?php echo $totalRows; ?> เส้นทาง</div>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -290,12 +300,13 @@ try {
                                 <th>อำเภอ</th>
                                 <th>สถานที่</th>
                                 <th>ราคา</th>
-                                <th>รูปภาพ</th>
                                 <th>การกระทำ</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <?php $index = 1; foreach ($routes as $route) { ?>
+                            <?php 
+                            $index = ($page - 1) * $limit + 1; 
+                            foreach ($routes as $route) { ?>
                                 <tr>
                                     <td><?php echo $index++; ?></td>
                                     <td><?php echo $route['PROVINCE_NAME']; ?></td>
@@ -303,20 +314,12 @@ try {
                                     <td><?php echo $route['location']; ?></td>
                                     <td><?php echo number_format($route['price'], 2); ?></td>
                                     <td>
-                                        <?php if (!empty($route['route_image'])) { ?>
-                                            <img src="<?php echo $route['route_image']; ?>" alt="Route Image" class="img-thumbnail previewable" width="100">
-                                        <?php } else { ?>
-                                            ไม่มีรูปภาพ
-                                        <?php } ?>
-                                    </td>
-                                    <td>
                                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editRouteModal"
                                                 data-route_id="<?php echo $route['route_ID']; ?>"
                                                 data-province="<?php echo $route['province']; ?>"
                                                 data-amphur="<?php echo $route['amphur']; ?>"
                                                 data-location="<?php echo $route['location']; ?>"
-                                                data-price="<?php echo $route['price']; ?>"
-                                                data-route_image="<?php echo $route['route_image']; ?>">แก้ไข</button>
+                                                data-price="<?php echo $route['price']; ?>">แก้ไข</button>
                                         <button type="button" class="btn btn-danger btn-sm delete-btn" 
                                                 data-delete-id="<?php echo $route['route_ID']; ?>">ลบ</button>
                                     </td>
@@ -325,6 +328,29 @@ try {
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination -->
+                <?php if ($totalPages > 1) { ?>
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $page - 1; ?>" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            <?php for ($i = 1; $i <= $totalPages; $i++) { ?>
+                                <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
+                                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                </li>
+                            <?php } ?>
+                            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $page + 1; ?>" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                <?php } ?>
             </div>
         </div>
     </div>
@@ -363,11 +389,6 @@ try {
                         <div class="mb-3">
                             <label for="price" class="form-label">ราคา:</label>
                             <input type="number" step="0.01" id="price" name="price" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="route_image" class="form-label">อัปโหลดรูปภาพ:</label>
-                            <input type="file" id="route_image" name="route_image" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_add')">
-                            <img id="preview_add" src="" alt="Preview Image" style="max-width: 100px; display: none; margin-top: 10px;">
                         </div>
                         <button type="submit" name="submit" class="btn btn-primary">เพิ่มเส้นทาง</button>
                     </form>
@@ -412,28 +433,8 @@ try {
                             <label for="price_edit" class="form-label">ราคา:</label>
                             <input type="number" step="0.01" id="price_edit" name="price" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="route_image_edit" class="form-label">เปลี่ยนรูปภาพ:</label>
-                            <input type="file" id="route_image_edit" name="route_image" class="form-control" accept="image/*" onchange="previewImage(this, 'preview_edit')">
-                            <img id="preview_edit" src="" alt="Preview Image" style="max-width: 100px; display: none; margin-top: 10px;">
-                        </div>
                         <button type="submit" name="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
                     </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal แสดงภาพขนาดใหญ่ -->
-    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="imageModalLabel">รูปภาพประกอบ</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img id="modalImage" src="" class="img-fluid" alt="Route Image">
                 </div>
             </div>
         </div>
@@ -467,7 +468,6 @@ try {
             var amphur = button.data('amphur');
             var location = button.data('location');
             var price = button.data('price');
-            var routeImage = button.data('route_image');
 
             var modal = $(this);
             modal.find('#route_ID').val(routeID);
@@ -478,20 +478,9 @@ try {
 
             fetchAmphurs(province, 'edit');
             setTimeout(() => modal.find('#amphur_edit').val(amphur), 500);
-
-            if (routeImage) {
-                modal.find('#preview_edit').attr('src', routeImage).show();
-            } else {
-                modal.find('#preview_edit').hide();
-            }
         });
 
         $(document).ready(function() {
-            $('img.previewable').click(function() {
-                $('#modalImage').attr('src', $(this).attr('src'));
-                $('#imageModal').modal('show');
-            });
-
             $('.close-btn').on('click', function() {
                 $('.sidebar').addClass('closed');
                 $('.content').addClass('closed');
@@ -521,18 +510,6 @@ try {
                 });
             });
         });
-
-        function previewImage(input, previewId) {
-            var preview = document.getElementById(previewId);
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
 
         function clearFilters() {
             $('#province_filter').val('');

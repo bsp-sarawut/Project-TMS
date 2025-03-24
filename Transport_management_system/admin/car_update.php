@@ -2,7 +2,7 @@
 include('config/condb.php');
 session_start();
 
-if (isset($_POST['submit'])) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $car_id = $_POST['car_id'];
     $car_license = $_POST['car_license'];
     $car_brand = $_POST['car_brand'];
@@ -17,8 +17,7 @@ if (isset($_POST['submit'])) {
     $checkStmt->bindParam(':car_id', $car_id);
     $checkStmt->execute();
     if ($checkStmt->fetchColumn() > 0) {
-        $_SESSION['error'] = "หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว";
-        header("Location: car.php");
+        echo "error: หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว";
         exit();
     }
 
@@ -29,8 +28,7 @@ if (isset($_POST['submit'])) {
         $driverCheckStmt->bindParam(':car_id', $car_id);
         $driverCheckStmt->execute();
         if ($driverCheckStmt->fetchColumn() > 0) {
-            $_SESSION['error'] = "คนขับนี้ถูกผูกกับรถคันอื่นแล้ว";
-            header("Location: car.php");
+            echo "error: คนขับนี้ถูกผูกกับรถคันอื่นแล้ว";
             exit();
         }
     }
@@ -42,10 +40,13 @@ if (isset($_POST['submit'])) {
     $currentCar = $currentStmt->fetch(PDO::FETCH_ASSOC);
     $car_image = $currentCar['car_image'];
 
-    // ตรวจสอบการอัปโหลดรูปภาพใหม่
+    // ตรวจสอบการอัปโหลดรูปภาพใหม่ (ถ้ามี)
     if (isset($_FILES['car_image']) && $_FILES['car_image']['error'] == 0) {
         $car_image = $_FILES['car_image']['name'];
-        $target_dir = "uploads/";
+        $target_dir = "uploads/cars/";
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true); // สร้างโฟลเดอร์ถ้ายังไม่มี
+        }
         $target_file = $target_dir . basename($car_image);
         move_uploaded_file($_FILES["car_image"]["tmp_name"], $target_file);
     }
@@ -63,11 +64,12 @@ if (isset($_POST['submit'])) {
         $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
         $stmt->bindParam(':car_id', $car_id);
         $stmt->execute();
-        $_SESSION['success'] = "ข้อมูลรถยนต์ถูกอัปเดตเรียบร้อยแล้ว";
+        echo "success";
     } catch (PDOException $e) {
-        $_SESSION['error'] = "เกิดข้อผิดพลาดในการอัปเดตข้อมูล: " . $e->getMessage();
+        echo "error: เกิดข้อผิดพลาดในการอัปเดตข้อมูล: " . $e->getMessage();
     }
-    header("Location: car.php");
-    exit();
+} else {
+    echo "error: Invalid request";
 }
+exit();
 ?>
