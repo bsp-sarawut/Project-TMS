@@ -1,7 +1,10 @@
 <head>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.5.9/dist/sweetalert2.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Driver</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
-
 <?php
 include('config/condb.php');
 session_start();
@@ -15,44 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $driver_province = $_POST['driver_province'];
     $driver_amphur = $_POST['driver_amphur'];
 
-    // ตรวจสอบว่ามีการอัปโหลดไฟล์หรือไม่
-    $upload_dir = 'uploads/drivers/';
-    $driver_image = null;
-
-    if (isset($_FILES['driver_image']) && $_FILES['driver_image']['error'] === UPLOAD_ERR_OK) {
-        $file_tmp = $_FILES['driver_image']['tmp_name'];
-        $file_name = uniqid() . '_' . $_FILES['driver_image']['name'];
-        $file_dest = $upload_dir . $file_name;
-
-        // ตรวจสอบว่ามีโฟลเดอร์เก็บไฟล์หรือไม่ ถ้าไม่มีให้สร้าง
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-
-        // ย้ายไฟล์ไปยังปลายทาง
-        if (move_uploaded_file($file_tmp, $file_dest)) {
-            $driver_image = $file_name;
-        } else {
-            echo "<script>
-                document.addEventListener('DOMContentLoaded', function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: 'ไม่สามารถอัปโหลดรูปภาพได้',
-                        confirmButtonText: 'ตกลง'
-                    }).then(() => {
-                        window.history.back();
-                    });
-                });
-            </script>";
-            exit;
-        }
-    }
-
     try {
-        // เพิ่มข้อมูลลงในฐานข้อมูล
-        $stmt = $conn->prepare("INSERT INTO driver (driver_user, driver_password, driver_name, driver_lastname, driver_tel, driver_province, driver_amphur, driver_image) 
-                                VALUES (:driver_user, :driver_password, :driver_name, :driver_lastname, :driver_tel, :driver_province, :driver_amphur, :driver_image)");
+        // เพิ่มข้อมูลคนขับก่อนเพื่อให้ได้ driver_id
+        $stmt = $conn->prepare("INSERT INTO driver (driver_user, driver_password, driver_name, driver_lastname, driver_tel, driver_province, driver_amphur) 
+                                VALUES (:driver_user, :driver_password, :driver_name, :driver_lastname, :driver_tel, :driver_province, :driver_amphur)");
         $stmt->bindParam(':driver_user', $driver_user);
         $stmt->bindParam(':driver_password', $driver_password);
         $stmt->bindParam(':driver_name', $driver_name);
@@ -60,9 +29,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->bindParam(':driver_tel', $driver_tel);
         $stmt->bindParam(':driver_province', $driver_province);
         $stmt->bindParam(':driver_amphur', $driver_amphur);
-        $stmt->bindParam(':driver_image', $driver_image);
-
         $stmt->execute();
+
+        // ดึง driver_id ที่เพิ่งเพิ่ม
+        $driver_id = $conn->lastInsertId();
+
+        // ตรวจสอบและอัปโหลดรูปภาพ
+        $driver_image = null;
+        if (isset($_FILES['driver_image']) && $_FILES['driver_image']['error'] === UPLOAD_ERR_OK) {
+            $image_tmp_name = $_FILES['driver_image']['tmp_name'];
+            $image_name = $_FILES['driver_image']['name'];
+            $image_ext = pathinfo($image_name, PATHINFO_EXTENSION);
+            $image_new_name = 'driver_' . $driver_id . '.' . $image_ext;
+            $image_upload_path = 'uploads/drivers/' . $image_new_name;
+
+            if (!is_dir('uploads/drivers/')) {
+                mkdir('uploads/drivers/', 0777, true);
+            }
+
+            if (move_uploaded_file($image_tmp_name, $image_upload_path)) {
+                $driver_image = $image_new_name;
+
+                // อัปเดต driver_image ในฐานข้อมูล
+                $update_stmt = $conn->prepare("UPDATE driver SET driver_image = :driver_image WHERE driver_id = :driver_id");
+                $update_stmt->bindParam(':driver_image', $driver_image);
+                $update_stmt->bindParam(':driver_id', $driver_id);
+                $update_stmt->execute();
+            } else {
+                echo "<script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: 'ไม่สามารถอัปโหลดรูปภาพได้',
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            window.location.href = 'driver.php';
+                        });
+                    });
+                </script>";
+                exit;
+            }
+        }
 
         echo "<script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -85,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     text: 'ไม่สามารถเพิ่มข้อมูลได้: " . $e->getMessage() . "',
                     confirmButtonText: 'ตกลง'
                 }).then(() => {
-                    window.history.back();
+                    window.location.href = 'driver.php';
                 });
             });
         </script>";

@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['driver_id'])) {
         $image_name = $_FILES['driver_image']['name'];
         $image_ext = pathinfo($image_name, PATHINFO_EXTENSION);
         $image_new_name = 'driver_' . $driver_id . '.' . $image_ext;
-        $image_upload_path = 'uploads/' . $image_new_name;
+        $image_upload_path = 'uploads/drivers/' . $image_new_name;
 
         // อัปโหลดรูปภาพ
         if (move_uploaded_file($image_tmp_name, $image_upload_path)) {

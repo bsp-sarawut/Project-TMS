@@ -2,101 +2,63 @@
 include 'config/condb.php';
 session_start();
 
-// ตรวจสอบการลบข้อมูล
 if (isset($_GET['delete_id']) && !empty($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     try {
         $stmt = $conn->prepare("DELETE FROM driver WHERE driver_id = :driver_id");
         $stmt->bindParam(':driver_id', $delete_id);
         $stmt->execute();
-
-        echo "<script>
-            document.addEventListener('DOMContentLoaded', function() {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'ลบข้อมูลสำเร็จ',
-                    text: 'ลบข้อมูลคนขับเรียบร้อยแล้ว',
-                    confirmButtonText: 'ตกลง'
-                }).then(() => {
-                    window.location.href = 'driver.php';
-                });
-            });
-        </script>";
+        $_SESSION['success'] = "ลบข้อมูลคนขับเรียบร้อยแล้ว";
+        header("Location: driver.php");
+        exit();
     } catch (PDOException $e) {
-        echo "<script>
-            document.addEventListener('DOMContentLoaded', function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'เกิดข้อผิดพลาดในการลบข้อมูล: " . $e->getMessage() . "',
-                    confirmButtonText: 'ตกลง'
-                });
-            });
-        </script>";
+        $_SESSION['error'] = "เกิดข้อผิดพลาดในการลบข้อมูล: " . $e->getMessage();
     }
 }
 
-// ค้นหาข้อมูลตามเงื่อนไข
 $searchQuery = "";
+$params = [];
 if (isset($_POST['search']) && !empty($_POST['search'])) {
     $search = $_POST['search'];
     $searchQuery = "WHERE d.driver_name LIKE :search OR d.driver_lastname LIKE :search OR p.PROVINCE_NAME LIKE :search OR a.AMPHUR_NAME LIKE :search";
+    $params[':search'] = '%' . $search . '%';
 }
 
 if (isset($_POST['province_filter']) && !empty($_POST['province_filter'])) {
     $province_filter = $_POST['province_filter'];
     $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " d.driver_province = :province_filter";
+    $params[':province_filter'] = $province_filter;
 }
 
 if (isset($_POST['amphur_filter']) && !empty($_POST['amphur_filter'])) {
     $amphur_filter = $_POST['amphur_filter'];
     $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " d.driver_amphur = :amphur_filter";
+    $params[':amphur_filter'] = $amphur_filter;
 }
 
-// ดึงข้อมูลจังหวัดจากฐานข้อมูล
 try {
     $stmt = $conn->prepare("SELECT * FROM province");
     $stmt->execute();
     $provinces = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "<script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'เกิดข้อผิดพลาดในการดึงข้อมูลจังหวัด: " . $e->getMessage() . "',
-                confirmButtonText: 'ตกลง'
-            });
-        });
-    </script>";
+    $_SESSION['error'] = "เกิดข้อผิดพลาดในการดึงข้อมูลจังหวัด: " . $e->getMessage();
+    $provinces = [];
 }
 
-// ดึงข้อมูลคนขับจากฐานข้อมูลตามการค้นหา
 try {
     $stmt = $conn->prepare("SELECT d.*, p.PROVINCE_NAME, a.AMPHUR_NAME
                             FROM driver d
                             LEFT JOIN province p ON d.driver_province = p.PROVINCE_ID
                             LEFT JOIN amphur a ON d.driver_amphur = a.AMPHUR_ID
                             $searchQuery");
-
-    if ($searchQuery) {
-        if (isset($search)) $stmt->bindValue(':search', '%' . $search . '%');
-        if (isset($province_filter)) $stmt->bindValue(':province_filter', $province_filter);
-        if (isset($amphur_filter)) $stmt->bindValue(':amphur_filter', $amphur_filter);
+    foreach ($params as $key => $value) {
+        $stmt->bindValue($key, $value);
     }
     $stmt->execute();
     $drivers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    echo "<script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'เกิดข้อผิดพลาดในการดึงข้อมูล: " . $e->getMessage() . "',
-                confirmButtonText: 'ตกลง'
-            });
-        });
-    </script>";
+    $_SESSION['error'] = "เกิดข้อผิดพลาดในการดึงข้อมูล: " . $e->getMessage();
+    $drivers = [];
 }
 ?>
 
@@ -108,130 +70,36 @@ try {
     <title>ระบบจัดการคนขับ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        body {
-            background: #f5f6f5;
-            font-family: 'Kanit', sans-serif;
-            min-height: 100vh;
-        }
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-        }
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            background: #fff;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        .card h3 {
-            color: #333;
-            font-weight: 600;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 5px;
-            margin-bottom: 15px;
-        }
-        .form-label {
-            font-weight: 500;
-            color: #444;
-        }
-        .form-select, .form-control {
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-        .form-select:focus, .form-control:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
-        }
-        .btn-primary {
-            border-radius: 8px;
-            padding: 8px 20px;
-            background: #007bff;
-            border: none;
-            transition: background 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: #0056b3;
-        }
-        .btn-secondary {
-            border-radius: 8px;
-            padding: 8px 20px;
-            background: #6c757d;
-            border: none;
-            transition: background 0.3s ease;
-        }
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        .btn-warning {
-            background: #f39c12;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 15px;
-            color: #fff;
-        }
-        .btn-danger {
-            background: #e74c3c;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 15px;
-            color: #fff;
-        }
-        .table {
-            border-radius: 5px;
-            overflow: hidden;
-            background: #fff;
-        }
-        .table thead th {
-            background: #003087;
-            color: #fff;
-            text-align: center;
-            padding: 12px;
-        }
-        .table tbody tr:hover {
-            background: #f9f9f9;
-        }
-        .table td {
-            vertical-align: middle;
-            text-align: center;
-        }
-        .img-thumbnail {
-            border-radius: 5px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-        .img-thumbnail:hover {
-            transform: scale(1.05);
-        }
-        .modal-content {
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-        }
-        .modal-header {
-            background: #003087;
-            color: #fff;
-            border-bottom: none;
-            border-radius: 10px 10px 0 0;
-        }
-        .modal-body {
-            padding: 20px;
-        }
+        body { background: #f5f6f5; font-family: 'Kanit', sans-serif; min-height: 100vh; }
+        .content { margin-left: 250px; padding: 20px; transition: margin-left 0.3s ease; }
+        .card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background: #fff; padding: 15px; margin-bottom: 20px; }
+        .card h3 { color: #333; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 15px; }
+        .form-label { font-weight: 500; color: #444; }
+        .form-select, .form-control { border-radius: 5px; border: 1px solid #ccc; padding: 8px; }
+        .form-select:focus, .form-control:focus { border-color: #007bff; box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); }
+        .btn-primary { border-radius: 8px; padding: 8px 20px; background: #007bff; border: none; transition: background 0.3s ease; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-secondary { border-radius: 8px; padding: 8px 20px; background: #6c757d; border: none; transition: background 0.3s ease; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-warning { background: #f39c12; border: none; border-radius: 5px; padding: 5px 15px; color: #fff; }
+        .btn-danger { background: #e74c3c; border: none; border-radius: 5px; padding: 5px 15px; color: #fff; }
+        .table { border-radius: 5px; overflow: hidden; background: #fff; }
+        .table thead th { background: #003087; color: #fff; text-align: center; padding: 12px; }
+        .table tbody tr:hover { background: #f9f9f9; }
+        .table td { vertical-align: middle; text-align: center; }
+        .img-thumbnail { border-radius: 5px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); cursor: pointer; transition: transform 0.2s ease; }
+        .img-thumbnail:hover { transform: scale(1.05); }
+        .modal-content { border-radius: 10px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2); }
+        .modal-header { background: #003087; color: #fff; border-bottom: none; border-radius: 10px 10px 0 0; }
+        .modal-body { padding: 20px; }
         @media (max-width: 768px) {
-            .content {
-                margin-left: 0;
-                padding: 15px;
-            }
-            .btn-group {
-                flex-direction: column;
-                gap: 10px;
-            }
+            .content { margin-left: 0; padding: 15px; }
+            .btn-group { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
@@ -241,7 +109,6 @@ try {
         <div class="container mt-4">
             <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">ระบบจัดการคนขับ</h2>
 
-            <!-- ส่วนที่ 1: ฟอร์มค้นหาคนขับ -->
             <div class="card mb-4">
                 <h3 class="mb-3">ค้นหาคนขับ</h3>
                 <form method="POST" action="" id="searchForm">
@@ -252,7 +119,7 @@ try {
                                 <option value="">เลือกจังหวัด</option>
                                 <?php foreach ($provinces as $province) { ?>
                                     <option value="<?php echo $province['PROVINCE_ID']; ?>" <?php echo (isset($province_filter) && $province_filter == $province['PROVINCE_ID']) ? 'selected' : ''; ?>>
-                                        <?php echo $province['PROVINCE_NAME']; ?>
+                                        <?php echo htmlspecialchars($province['PROVINCE_NAME']); ?>
                                     </option>
                                 <?php } ?>
                             </select>
@@ -265,7 +132,7 @@ try {
                         </div>
                         <div class="col-md-4 col-12">
                             <label for="search_input" class="form-label">ค้นหาคนขับ</label>
-                            <input type="text" name="search" id="search_input" class="form-control" placeholder="ค้นหาคนขับ" value="<?php echo isset($search) ? $search : ''; ?>">
+                            <input type="text" name="search" id="search_input" class="form-control" placeholder="ค้นหาคนขับ" value="<?php echo isset($search) ? htmlspecialchars($search) : ''; ?>">
                         </div>
                     </div>
                     <div class="btn-group d-flex justify-content-start mt-3">
@@ -275,7 +142,6 @@ try {
                 </form>
             </div>
 
-            <!-- ส่วนที่ 2: รายชื่อคนขับ -->
             <div class="card mb-4">
                 <h3 class="mb-3">รายชื่อคนขับ</h3>
                 <div class="text-end mb-3">
@@ -302,30 +168,39 @@ try {
                             <?php
                             $index = 1;
                             foreach ($drivers as $driver) {
-                                $imagePath = !empty($driver['driver_image']) ? 'uploads/' . $driver['driver_image'] : 'path/to/default/image.jpg';
                             ?>
                                 <tr>
                                     <td><?php echo $index++; ?></td>
-                                    <td><?php echo $driver['driver_user']; ?></td>
-                                    <td><?php echo $driver['driver_password']; ?></td>
-                                    <td><?php echo $driver['driver_name'] . " " . $driver['driver_lastname']; ?></td>
-                                    <td><?php echo $driver['driver_tel']; ?></td>
-                                    <td><?php echo $driver['PROVINCE_NAME']; ?></td>
-                                    <td><?php echo $driver['AMPHUR_NAME']; ?></td>
+                                    <td><?php echo htmlspecialchars($driver['driver_user']); ?></td>
+                                    <td><?php echo htmlspecialchars($driver['driver_password']); ?></td>
+                                    <td><?php echo htmlspecialchars($driver['driver_name'] . " " . $driver['driver_lastname']); ?></td>
+                                    <td><?php echo htmlspecialchars($driver['driver_tel']); ?></td>
+                                    <td><?php echo htmlspecialchars($driver['PROVINCE_NAME'] ?? 'ไม่ระบุ'); ?></td>
+                                    <td><?php echo htmlspecialchars($driver['AMPHUR_NAME'] ?? 'ไม่ระบุ'); ?></td>
                                     <td>
-                                        <img src="<?php echo $imagePath; ?>" 
-                                             alt="รูปภาพคนขับ" 
-                                             class="img-thumbnail previewable" 
-                                             width="100">
+                                        <?php 
+                                        // ปรับเส้นทางให้ถูกต้องสำหรับ admin/
+                                        $imagePath = !empty($driver['driver_image']) ? "uploads/drivers/" . $driver['driver_image'] : "../images/default_driver.jpg";
+                                        if (!empty($driver['driver_image']) && file_exists("uploads/drivers/" . $driver['driver_image'])) { ?>
+                                            <img src="<?php echo $imagePath; ?>" 
+                                                 alt="รูปภาพคนขับ" 
+                                                 class="img-thumbnail previewable" 
+                                                 style="max-width: 100px; max-height: 100px; object-fit: cover; cursor: pointer;"
+                                                 data-bs-toggle="modal" 
+                                                 data-bs-target="#imageModal" 
+                                                 data-image="<?php echo $imagePath; ?>">
+                                        <?php } else { ?>
+                                            ไม่มีรูปภาพ
+                                        <?php } ?>
                                     </td>
                                     <td>
                                         <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editDriverModal"
                                                 data-driver_id="<?php echo $driver['driver_id']; ?>"
-                                                data-driver_user="<?php echo $driver['driver_user']; ?>"
-                                                data-driver_password="<?php echo $driver['driver_password']; ?>"
-                                                data-driver_name="<?php echo $driver['driver_name']; ?>"
-                                                data-driver_lastname="<?php echo $driver['driver_lastname']; ?>"
-                                                data-driver_tel="<?php echo $driver['driver_tel']; ?>"
+                                                data-driver_user="<?php echo htmlspecialchars($driver['driver_user']); ?>"
+                                                data-driver_password="<?php echo htmlspecialchars($driver['driver_password']); ?>"
+                                                data-driver_name="<?php echo htmlspecialchars($driver['driver_name']); ?>"
+                                                data-driver_lastname="<?php echo htmlspecialchars($driver['driver_lastname']); ?>"
+                                                data-driver_tel="<?php echo htmlspecialchars($driver['driver_tel']); ?>"
                                                 data-driver_province="<?php echo $driver['driver_province']; ?>"
                                                 data-driver_amphur="<?php echo $driver['driver_amphur']; ?>">
                                             แก้ไข
@@ -344,7 +219,6 @@ try {
         </div>
     </div>
 
-    <!-- Modal เพิ่มข้อมูลคนขับ -->
     <div class="modal fade" id="addDriverModal" tabindex="-1" aria-labelledby="addDriverModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -379,7 +253,7 @@ try {
                             <select id="driver_province" name="driver_province" class="form-control" onchange="fetchAmphurs(this.value, 'add')" required>
                                 <option value="">เลือกจังหวัด</option>
                                 <?php foreach ($provinces as $province) { ?>
-                                    <option value="<?php echo $province['PROVINCE_ID']; ?>"><?php echo $province['PROVINCE_NAME']; ?></option>
+                                    <option value="<?php echo $province['PROVINCE_ID']; ?>"><?php echo htmlspecialchars($province['PROVINCE_NAME']); ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -401,7 +275,6 @@ try {
         </div>
     </div>
 
-    <!-- Modal แก้ไขข้อมูลคนขับ -->
     <div class="modal fade" id="editDriverModal" tabindex="-1" aria-labelledby="editDriverModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -437,7 +310,7 @@ try {
                             <select id="edit_driver_province" name="driver_province" class="form-control" onchange="fetchAmphurs(this.value, 'edit')" required>
                                 <option value="">เลือกจังหวัด</option>
                                 <?php foreach ($provinces as $province) { ?>
-                                    <option value="<?php echo $province['PROVINCE_ID']; ?>"><?php echo $province['PROVINCE_NAME']; ?></option>
+                                    <option value="<?php echo $province['PROVINCE_ID']; ?>"><?php echo htmlspecialchars($province['PROVINCE_NAME']); ?></option>
                                 <?php } ?>
                             </select>
                         </div>
@@ -459,7 +332,6 @@ try {
         </div>
     </div>
 
-    <!-- Modal แสดงภาพขนาดใหญ่ -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -476,7 +348,7 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function fetchAmphurs(province_id, mode = 'add') {
+        function fetchAmphurs(province_id, mode = 'add', callback = null) {
             var amphur_select = (mode === 'add') ? '#amphur_add' : (mode === 'edit' ? '#edit_amphur' : '#amphur_filter');
             if (province_id) {
                 $.ajax({
@@ -489,10 +361,7 @@ try {
                         amphurs.forEach(function(amphur) {
                             $(amphur_select).append(`<option value="${amphur.AMPHUR_ID}">${amphur.AMPHUR_NAME}</option>`);
                         });
-                        if (mode === 'edit') {
-                            const driverAmphur = $('#editDriverModal').data('driver_amphur');
-                            $(amphur_select).val(driverAmphur);
-                        }
+                        if (callback) callback();
                     },
                     error: function() {
                         Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดึงข้อมูลอำเภอได้', 'error');
@@ -523,8 +392,9 @@ try {
             modal.find('#edit_driver_tel').val(driverTel);
             modal.find('#edit_driver_province').val(driverProvince);
 
-            fetchAmphurs(driverProvince, 'edit');
-            setTimeout(() => modal.find('#edit_amphur').val(driverAmphur), 500);
+            fetchAmphurs(driverProvince, 'edit', function() {
+                modal.find('#edit_amphur').val(driverAmphur);
+            });
         });
 
         $(document).ready(function() {
@@ -543,7 +413,6 @@ try {
                 $('.content').removeClass('closed');
             });
 
-            // SweetAlert สำหรับยืนยันการลบ
             $('.delete-btn').on('click', function() {
                 var deleteId = $(this).data('delete-id');
                 Swal.fire({
@@ -561,6 +430,26 @@ try {
                     }
                 });
             });
+
+            <?php if (isset($_SESSION['success'])) { ?>
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ',
+                    text: '<?php echo $_SESSION['success']; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+                <?php unset($_SESSION['success']); ?>
+            <?php } ?>
+
+            <?php if (isset($_SESSION['error'])) { ?>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: '<?php echo $_SESSION['error']; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+                <?php unset($_SESSION['error']); ?>
+            <?php } ?>
         });
 
         function previewImage(input, previewId) {
