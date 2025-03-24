@@ -281,7 +281,7 @@ $timetables = [
         @keyframes subtleWave {
             0% { transform: translateY(0); opacity: 0.8; }
             50% { transform: translateY(-10px); opacity: 1; }
-            3 { transform: translateY(0); opacity: 0.8; }
+            3% { transform: translateY(0); opacity: 0.8; }
         }
     </style>
 </head>
