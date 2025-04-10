@@ -148,6 +148,7 @@
             border-radius: 5px;
             border: 2px solid #ffca28;
             transition: transform 0.3s ease;
+            cursor: pointer;
         }
         .receipt-img:hover {
             transform: scale(1.1);
@@ -266,29 +267,26 @@
                                     <?php 
                                         $imagePath = "./" . htmlspecialchars($row['payment_receipt_image']);
                                     ?>
-                                    <!-- Link to open the modal -->
-                                    <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-image="<?= $imagePath ?>">
-                                        <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img">
-                                    </a>
+                                    <!-- Image to trigger the modal -->
+                                    <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img" data-image="<?= $imagePath ?>" data-modal-id="imageModal-<?php echo htmlspecialchars($row['id']); ?>">
+
+                                    <!-- Modal for each registration -->
+                                    <div class="modal fade" id="imageModal-<?php echo htmlspecialchars($row['id']); ?>" tabindex="-1" aria-labelledby="imageModalLabel-<?php echo htmlspecialchars($row['id']); ?>" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="imageModalLabel-<?php echo htmlspecialchars($row['id']); ?>">ภาพใบเสร็จ</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <img id="modalImage-<?php echo htmlspecialchars($row['id']); ?>" src="" alt="ใบเสร็จ" class="img-fluid">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 <?php else: ?>
                                     <span class="text-muted">ไม่มีภาพ</span>
                                 <?php endif; ?>
-                            </div>
-
-                            <!-- Modal -->
-                            <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title" id="imageModalLabel">ภาพใบเสร็จ</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <!-- Image will be shown here -->
-                                            <img id="modalImage" src="" alt="ใบเสร็จ" class="img-fluid">
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -302,14 +300,62 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Use JavaScript to set the image source for the modal
-    var imageModal = document.getElementById('imageModal');
-    imageModal.addEventListener('show.bs.modal', function (event) {
-        var button = event.relatedTarget; // Button that triggered the modal
-        var imageSrc = button.getAttribute('data-bs-image'); // Get the image source
-        var modalImage = imageModal.querySelector('#modalImage'); // Find the image element inside the modal
-        modalImage.src = imageSrc; // Set the image source in the modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Track currently open modal to prevent multiple modals from opening
+    let currentModal = null;
+
+    // Select all receipt images
+    const receiptImages = document.querySelectorAll('.receipt-img');
+
+    receiptImages.forEach(function(image) {
+        // Remove any existing event listeners to prevent duplicates
+        image.removeEventListener('click', handleImageClick);
+        image.addEventListener('click', handleImageClick);
     });
+
+    function handleImageClick() {
+        // If a modal is already open, do not open another one
+        if (currentModal) {
+            console.log('Modal already open, skipping...');
+            return;
+        }
+
+        const imageSrc = this.getAttribute('data-image');
+        const modalId = this.getAttribute('data-modal-id');
+        const modal = document.querySelector(`#${modalId}`);
+
+        if (!modal) {
+            console.error('Modal not found for ID:', modalId);
+            return;
+        }
+
+        const modalImage = modal.querySelector('img');
+        if (modalImage) {
+            modalImage.src = imageSrc; // Set the image source in the modal
+        } else {
+            console.error('Modal image element not found in modal:', modalId);
+            return;
+        }
+
+        // Initialize and show the modal
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+        currentModal = bsModal;
+
+        console.log('Modal opened:', modalId);
+
+        // When the modal is hidden, clear the currentModal
+        modal.addEventListener('hidden.bs.modal', function handler() {
+            if (modalImage) {
+                modalImage.src = ''; // Clear the image source when modal is closed
+            }
+            currentModal = null;
+            console.log('Modal closed:', modalId);
+            // Remove this event listener to prevent accumulation
+            modal.removeEventListener('hidden.bs.modal', handler);
+        });
+    }
+});
 </script>
 </body>
 </html>
