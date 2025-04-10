@@ -1,12 +1,12 @@
- 
 <html>
-    <!-- โหลด SweetAlert2 ก่อนการใช้ JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- โหลด SweetAlert2 และฟอนต์ Chakra Petch -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
 </html>
 <?php
     session_start(); // เริ่มต้นเซสชัน
 
-    if (! isset($_SESSION['user_id']) || ! isset($_SESSION['user_name'])) {
+    if (!isset($_SESSION['user_id']) || !isset($_SESSION['user_name'])) {
         die("Please log in first.");
     }
 
@@ -27,7 +27,7 @@
     $stmt_route->execute(['province' => $province_id, 'amphur' => $amphur_id, 'location' => $location]);
     $route = $stmt_route->fetch(PDO::FETCH_ASSOC);
 
-    if (! $route) {
+    if (!$route) {
         die("Error: Route does not exist.");
     }
 
@@ -35,21 +35,29 @@
     $price    = $route['price'];
     $total_price = $num_of_days * $price;
 
-// ตรวจสอบว่ามีการอัปโหลดไฟล์จริงหรือไม่
-if (!isset($_FILES['payment_receipt']) || $_FILES['payment_receipt']['error'] !== UPLOAD_ERR_OK) {
-    echo "<script>
-        Swal.fire({
-            icon: 'error',
-            title: 'เกิดข้อผิดพลาด!',
-            text: 'กรุณาอัปโหลดไฟล์ก่อนดำเนินการ',
-            confirmButtonText: 'ตกลง'
-        }).then(() => {
-            window.history.back(); // กลับไปหน้าก่อนหน้า
-        });
-    </script>";
-    exit;
-}
-
+    // ตรวจสอบว่ามีการอัปโหลดไฟล์จริงหรือไม่
+    if (!isset($_FILES['payment_receipt']) || $_FILES['payment_receipt']['error'] !== UPLOAD_ERR_OK) {
+        echo "<script>
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด!',
+                text: 'กรุณาอัปโหลดไฟล์ก่อนดำเนินการ',
+                confirmButtonText: 'ตกลง',
+                background: '#263238',
+                color: '#eceff1',
+                iconColor: '#ef5350',
+                confirmButtonColor: '#ffca28',
+                customClass: {
+                    title: 'swal-title',
+                    content: 'swal-text',
+                    confirmButton: 'swal-button'
+                }
+            }).then(() => {
+                window.history.back(); // กลับไปหน้าก่อนหน้า
+            });
+        </script>";
+        exit;
+    }
 
     $payment_receipt = $_FILES['payment_receipt'];
     $target_dir      = "uploads/receipts/";
@@ -69,28 +77,64 @@ if (!isset($_FILES['payment_receipt']) || $_FILES['payment_receipt']['error'] !=
 
     // ตรวจสอบประเภทไฟล์
     $allowed_types = ['jpg', 'jpeg', 'png', 'gif'];
-    if (! in_array($imageFileType, $allowed_types)) {
+    if (!in_array($imageFileType, $allowed_types)) {
         die("Error: Only JPG, JPEG, PNG & GIF files are allowed.");
     }
 
     // อัปโหลดไฟล์
-    if (! move_uploaded_file($payment_receipt["tmp_name"], $target_file)) {
+    if (!move_uploaded_file($payment_receipt["tmp_name"], $target_file)) {
         die("Error: Failed to move uploaded file to destination folder.");
     }
 
     // แทรกข้อมูลลงในฐานข้อมูล
     $stmt_insert = $conn->prepare("INSERT INTO transport_registration (transport_schedule_id, route_id, num_of_days, total_price, payment_receipt_image, created_at, stu_username) VALUES (:schedule_id, :route_id, :num_of_days, :total_price, :payment_receipt_image, NOW(), :stu_username)");
-    $stmt_insert->execute([ 'schedule_id' => $schedule_id, 'route_id' => $route_id, 'num_of_days' => $num_of_days, 'total_price' => $total_price, 'payment_receipt_image' => $target_file, 'stu_username' => $stu_username ]);
+    $stmt_insert->execute(['schedule_id' => $schedule_id, 'route_id' => $route_id, 'num_of_days' => $num_of_days, 'total_price' => $total_price, 'payment_receipt_image' => $target_file, 'stu_username' => $stu_username]);
 
     echo "<script>
         Swal.fire({
             icon: 'success',
-            title: 'Registration successful!',
-            text: 'คุณลงทะเบียนสำเร็จ',
-            confirmButtonText: 'OK'
+            title: 'ลงทะเบียนสำเร็จ!',
+            text: 'คุณลงทะเบียนเรียบร้อยแล้ว',
+            confirmButtonText: 'ตกลง',
+            background: '#263238',
+            color: '#eceff1',
+            iconColor: '#4caf50',
+            confirmButtonColor: '#ffca28',
+            customClass: {
+                title: 'swal-title',
+                content: 'swal-text',
+                confirmButton: 'swal-button'
+            }
         }).then(function() {
             window.location = 'enrollment.php';
         });
     </script>";
 ?>
 
+<style>
+    .swal-title {
+        font-family: 'Chakra Petch', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #ffca28;
+        text-transform: uppercase;
+    }
+    .swal-text {
+        font-family: 'Chakra Petch', sans-serif;
+        font-weight: 400;
+        font-size: 1rem;
+    }
+    .swal-button {
+        font-family: 'Chakra Petch', sans-serif;
+        font-weight: 600;
+        background: linear-gradient(45deg, #ffca28, #ff8f00) !important;
+        color: #1c2526 !important;
+        border-radius: 25px !important;
+        padding: 10px 20px !important;
+        transition: background 0.3s ease, transform 0.3s ease !important;
+    }
+    .swal-button:hover {
+        background: linear-gradient(45deg, #ff8f00, #ffca28) !important;
+        transform: scale(1.05) !important;
+    }
+</style>

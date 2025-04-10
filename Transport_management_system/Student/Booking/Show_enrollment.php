@@ -42,33 +42,182 @@
         // Handle error here
         echo "Error: " . $e->getMessage();
     }
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Transport Registrations</title>
+    <title>ประวัติการลงทะเบียน</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        body {
+            background: linear-gradient(135deg, #1c2526 0%, #2c3e50 100%);
+            font-family: 'Chakra Petch', sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+            padding-top: 80px; /* ป้องกันเนื้อหาทับกับ Navbar */
+            color: #eceff1;
+        }
+        .container {
+            padding-top: 20px;
+            padding-bottom: 50px;
+        }
+        h2 {
+            color: #ffca28;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #ffca28, #ff8f00);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: 600;
+            color: #1c2526;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #ff8f00, #ffca28);
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(255, 202, 40, 0.4);
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            background: #263238;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease, background 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, #ffca28, #ff8f00);
+            transition: height 0.3s ease;
+        }
+        .card:hover::before {
+            height: 100%;
+            opacity: 0.2;
+        }
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
+            background: #2c3e50;
+        }
+        .card-body {
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #b0bec5;
+        }
+        .card-body p {
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        .card-body strong {
+            color: #ffca28;
+            font-weight: 600;
+        }
+        .badge {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 15px;
+        }
+        .badge.bg-success {
+            background: #4caf50 !important;
+        }
+        .badge.bg-danger {
+            background: #ef5350 !important;
+        }
         .receipt-img {
             width: 60px;
             height: 60px;
             object-fit: cover;
             border-radius: 5px;
+            border: 2px solid #ffca28;
+            transition: transform 0.3s ease;
         }
-        .card-body {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+        .receipt-img:hover {
+            transform: scale(1.1);
+        }
+        .text-muted {
+            color: #b0bec5 !important;
+        }
+        .modal-content {
+            border-radius: 15px;
+            background: #263238;
+            color: #eceff1;
+        }
+        .modal-header {
+            background: linear-gradient(45deg, #ffca28, #ff8f00);
+            color: #1c2526;
+            border-bottom: none;
+        }
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+        .modal-body img {
+            border-radius: 10px;
+            border: 2px solid #ffca28;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding-top: 10px;
+                padding-bottom: 40px;
+            }
+            .card-body {
+                padding: 20px;
+            }
+            .card-body p {
+                font-size: 0.9rem;
+            }
+            .badge {
+                font-size: 0.8rem;
+            }
+            .receipt-img {
+                width: 50px;
+                height: 50px;
+            }
+            .btn-primary {
+                padding: 8px 16px;
+                font-size: 0.9rem;
+            }
+        }
+        @media (max-width: 576px) {
+            h2 {
+                font-size: 1.5rem;
+            }
+            .card-body p {
+                font-size: 0.85rem;
+            }
+            .badge {
+                font-size: 0.75rem;
+            }
+            .receipt-img {
+                width: 45px;
+                height: 45px;
+            }
+            .btn-primary {
+                padding: 6px 14px;
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
 <body>
-<div class="container mt-5"><br>
+<div class="container">
     <h2 class="text-center mb-3">ประวัติการลงทะเบียน</h2>
 
     <div class="d-flex justify-content-end mb-3">
@@ -76,22 +225,22 @@
     </div>
 
     <div class="row">
-        <?php if (! empty($registrations)): ?>
+        <?php if (!empty($registrations)): ?>
             <?php foreach ($registrations as $row): ?>
                 <div class="col-md-4 mb-4">
-                    <div class="card shadow-sm">
+                    <div class="card">
                         <div class="card-body">
                             <!-- Month -->
-                            <p><strong>เดือน :</strong> <?php echo getMonthName(htmlspecialchars($row['schedule_month'])) ?></p>
+                            <p><strong>เดือน:</strong> <?php echo getMonthName(htmlspecialchars($row['schedule_month'])) ?></p>
 
                             <!-- Created At -->
-                            <p><strong>วันที่ลงทะเบียน :</strong> <?php echo date("d/m/Y H:i", strtotime($row['created_at'])) ?></p>
+                            <p><strong>วันที่ลงทะเบียน:</strong> <?php echo date("d/m/Y H:i", strtotime($row['created_at'])) ?></p>
 
                             <!-- Days -->
-                            <p><strong>จำนวนวันที่ขึ้นรถ :</strong> <?php echo htmlspecialchars($row['num_of_days']) ?> วัน</p>
+                            <p><strong>จำนวนวันที่ขึ้นรถ:</strong> <?php echo htmlspecialchars($row['num_of_days']) ?> วัน</p>
 
                             <!-- Available Dates -->
-                            <p><strong>วันที่ :</strong> <?php echo htmlspecialchars($row['available_dates']) ?></p>
+                            <p><strong>วันที่:</strong> <?php echo htmlspecialchars($row['available_dates']) ?></p>
 
                             <!-- จังหวัด -->
                             <p><strong>จังหวัด:</strong> <?php echo htmlspecialchars($row['province_name']) ?></p>
@@ -100,13 +249,13 @@
                             <p><strong>อำเภอ:</strong> <?php echo htmlspecialchars($row['amphur_name']) ?></p>
 
                             <!-- สถานที่ขึ้นรถ -->
-                            <p><strong>สถานที่ขึ้นรถ :</strong> <?php echo htmlspecialchars($row['route_location']) ?></p>
+                            <p><strong>สถานที่ขึ้นรถ:</strong> <?php echo htmlspecialchars($row['route_location']) ?></p>
 
                             <!-- Total Price -->
-                            <p><strong>ราคารวม :</strong> <?php echo number_format(htmlspecialchars($row['total_price']), 2) ?> ฿</p>
+                            <p><strong>ราคารวม:</strong> <?php echo number_format(htmlspecialchars($row['total_price']), 2) ?> ฿</p>
 
                             <!-- Payment Status -->
-                            <p><strong>Payment Status:</strong>
+                            <p><strong>สถานะการชำระเงิน:</strong>
                                 <span class="badge bg-<?php echo $row['payment_status'] == 'Paid' ? 'success' : 'danger' ?>">
                                     <?php echo htmlspecialchars($row['payment_status']) ?>
                                 </span>
@@ -119,10 +268,10 @@
                                     ?>
                                     <!-- Link to open the modal -->
                                     <a href="#" data-bs-toggle="modal" data-bs-target="#imageModal" data-bs-image="<?= $imagePath ?>">
-                                        <img src="<?= $imagePath ?>" alt="Receipt" class="receipt-img">
+                                        <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img">
                                     </a>
                                 <?php else: ?>
-                                    <span class="text-muted">No Image</span>
+                                    <span class="text-muted">ไม่มีภาพ</span>
                                 <?php endif; ?>
                             </div>
 
@@ -131,23 +280,22 @@
                                 <div class="modal-dialog">
                                     <div class="modal-content">
                                         <div class="modal-header">
-                                            <h5 class="modal-title" id="imageModalLabel">Receipt Image</h5>
+                                            <h5 class="modal-title" id="imageModalLabel">ภาพใบเสร็จ</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                         </div>
                                         <div class="modal-body">
                                             <!-- Image will be shown here -->
-                                            <img id="modalImage" src="" alt="Receipt" class="img-fluid">
+                                            <img id="modalImage" src="" alt="ใบเสร็จ" class="img-fluid">
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <p class="text-center text-muted">No registrations found.</p>
+            <p class="text-center text-muted">ไม่พบข้อมูลการลงทะเบียน</p>
         <?php endif; ?>
     </div>
 </div>
