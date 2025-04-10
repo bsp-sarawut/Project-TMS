@@ -263,29 +263,16 @@
                             </p>
 
                             <div class="mb-2">
-                                <?php if (!empty($row['payment_receipt_image'])): ?>
-                                    <?php 
-                                        $imagePath = "./" . htmlspecialchars($row['payment_receipt_image']);
-                                    ?>
+                                <?php 
+                                    $imagePath = $row['payment_receipt_image'] ? "./" . htmlspecialchars($row['payment_receipt_image']) : '';
+                                    // ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
+                                    $fileExists = $imagePath && file_exists($imagePath);
+                                ?>
+                                <?php if (!empty($row['payment_receipt_image']) && $fileExists): ?>
                                     <!-- Image to trigger the modal -->
-                                    <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img" data-image="<?= $imagePath ?>" data-modal-id="imageModal-<?php echo htmlspecialchars($row['id']); ?>">
-
-                                    <!-- Modal for each registration -->
-                                    <div class="modal fade" id="imageModal-<?php echo htmlspecialchars($row['id']); ?>" tabindex="-1" aria-labelledby="imageModalLabel-<?php echo htmlspecialchars($row['id']); ?>" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title" id="imageModalLabel-<?php echo htmlspecialchars($row['id']); ?>">ภาพใบเสร็จ</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <img id="modalImage-<?php echo htmlspecialchars($row['id']); ?>" src="" alt="ใบเสร็จ" class="img-fluid">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img" data-image="<?= $imagePath ?>">
                                 <?php else: ?>
-                                    <span class="text-muted">ไม่มีภาพ</span>
+                                    <span class="text-muted">ไม่มีภาพ (ไฟล์ไม่พบ)</span>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -296,65 +283,76 @@
             <p class="text-center text-muted">ไม่พบข้อมูลการลงทะเบียน</p>
         <?php endif; ?>
     </div>
+
+    <!-- Single Modal for all images -->
+    <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="receiptModalLabel">ภาพใบเสร็จ</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="modalImage" src="" alt="ใบเสร็จ" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Track currently open modal to prevent multiple modals from opening
-    let currentModal = null;
+    // Initialize the modal once
+    const modalElement = document.getElementById('receiptModal');
+    const modalImage = document.getElementById('modalImage');
+    const bsModal = new bootstrap.Modal(modalElement);
+    let isModalOpen = false;
+    let lastClickTime = 0;
+    const debounceDelay = 300; // Debounce delay in milliseconds
 
-    // Select all receipt images
-    const receiptImages = document.querySelectorAll('.receipt-img');
+    // Event delegation for all receipt images
+    document.querySelector('.container').addEventListener('click', function(event) {
+        if (!event.target.classList.contains('receipt-img')) return;
 
-    receiptImages.forEach(function(image) {
-        // Remove any existing event listeners to prevent duplicates
-        image.removeEventListener('click', handleImageClick);
-        image.addEventListener('click', handleImageClick);
+        // Debounce: Ignore rapid successive clicks
+        const currentTime = new Date().getTime();
+        if (currentTime - lastClickTime < debounceDelay) {
+            console.log('Click debounced, ignoring...');
+            return;
+        }
+        lastClickTime = currentTime;
+
+        // Prevent opening if modal is already open
+        if (isModalOpen) {
+            console.log('Modal is already open, ignoring click...');
+            return;
+        }
+
+        const imageSrc = event.target.getAttribute('data-image');
+        if (!imageSrc) {
+            console.error('Image source not found for element:', event.target);
+            return;
+        }
+
+        // Set the image source and show the modal
+        modalImage.src = imageSrc;
+        bsModal.show();
+        isModalOpen = true;
+        console.log('Modal opened with image:', imageSrc);
     });
 
-    function handleImageClick() {
-        // If a modal is already open, do not open another one
-        if (currentModal) {
-            console.log('Modal already open, skipping...');
-            return;
-        }
+    // Handle modal close
+    modalElement.addEventListener('hidden.bs.modal', function() {
+        modalImage.src = ''; // Clear the image source
+        isModalOpen = false;
+        console.log('Modal closed');
+    });
 
-        const imageSrc = this.getAttribute('data-image');
-        const modalId = this.getAttribute('data-modal-id');
-        const modal = document.querySelector(`#${modalId}`);
-
-        if (!modal) {
-            console.error('Modal not found for ID:', modalId);
-            return;
-        }
-
-        const modalImage = modal.querySelector('img');
-        if (modalImage) {
-            modalImage.src = imageSrc; // Set the image source in the modal
-        } else {
-            console.error('Modal image element not found in modal:', modalId);
-            return;
-        }
-
-        // Initialize and show the modal
-        const bsModal = new bootstrap.Modal(modal);
-        bsModal.show();
-        currentModal = bsModal;
-
-        console.log('Modal opened:', modalId);
-
-        // When the modal is hidden, clear the currentModal
-        modal.addEventListener('hidden.bs.modal', function handler() {
-            if (modalImage) {
-                modalImage.src = ''; // Clear the image source when modal is closed
-            }
-            currentModal = null;
-            console.log('Modal closed:', modalId);
-            // Remove this event listener to prevent accumulation
-            modal.removeEventListener('hidden.bs.modal', handler);
-        });
-    }
+    // Handle modal show (for debugging)
+    modalElement.addEventListener('show.bs.modal', function() {
+        console.log('Modal is being shown');
+    });
 });
 </script>
 </body>
