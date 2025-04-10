@@ -195,7 +195,7 @@
                             <a href="stu_booking.php" class="menu-item">หน้าแรก</a>
                             <a href="enrollment.php" class="menu-item">ลงทะเบียนขึ้นรถรับส่ง</a>
                             <a href="Show_enrollment.php" class="menu-item">ตรวจสอบสถานะการลงทะเบียน</a>
-                            <a href="#" class="menu-item">ตรวจสอบตารางรถ</a>
+                            <a href="Check_schedule.php" class="menu-item">ตรวจสอบตารางรถ</a>
                             <a href="#" class="menu-item">ตั้งค่า</a>
                             <a href="?logout=true" class="menu-item text-danger">ออกจากระบบ</a>
                         </div>
