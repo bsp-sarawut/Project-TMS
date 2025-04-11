@@ -244,6 +244,21 @@
         .btn-close {
             filter: invert(1) grayscale(100%) brightness(200%);
         }
+        /* Profile Image Styles */
+        .profile-image {
+            display: block;
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 0 auto 15px;
+            border: 2px solid #ffca28;
+        }
+        .no-image {
+            text-align: center;
+            color: #b0bec5;
+            margin-bottom: 15px;
+        }
         /* Search Button Styles */
         .search-toggle {
             background: #ffca28;
@@ -374,6 +389,10 @@
             .filter-section input[type="date"] {
                 width: 100%;
             }
+            .profile-image {
+                width: 120px;
+                height: 120px;
+            }
         }
         @media (max-width: 576px) {
             h2 {
@@ -405,6 +424,10 @@
             .search-toggle {
                 font-size: 0.85rem;
                 padding: 5px 12px;
+            }
+            .profile-image {
+                width: 100px;
+                height: 100px;
             }
         }
     </style>
@@ -541,10 +564,15 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p><strong>รหัสนักเรียน:</strong> <span id="modal-stu-id"></span></p>
+                <div class="text-center">
+                    <img id="modal-stu-img" class="profile-image" style="display: none;" alt="Profile Image">
+                    <p id="modal-no-image" class="no-image" style="display: none;">ไม่มีรูปภาพ</p>
+                </div>
+                <p><strong>รหัสนักศึกษา:</strong> <span id="modal-stu-license"></span></p>
                 <p><strong>ชื่อ:</strong> <span id="modal-stu-name"></span></p>
                 <p><strong>เบอร์โทร:</strong> <span id="modal-stu-tel"></span></p>
                 <p><strong>คณะ:</strong> <span id="modal-stu-faculty"></span></p>
+                <p><strong>สาขา:</strong> <span id="modal-stu-major"></span></p>
                 <p><strong>ชื่อผู้ใช้:</strong> <span id="modal-stu-username"></span></p>
             </div>
             <div class="modal-footer">
@@ -571,9 +599,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
 
-                document.getElementById('modal-stu-id').textContent = data.stu_ID;
+                // แสดงรูปภาพ
+                const profileImage = document.getElementById('modal-stu-img');
+                const noImage = document.getElementById('modal-no-image');
+                if (data.stu_img && data.stu_img !== '') {
+                    profileImage.src = '../uploads/' + data.stu_img;
+                    profileImage.style.display = 'block';
+                    noImage.style.display = 'none';
+                } else {
+                    profileImage.style.display = 'none';
+                    noImage.style.display = 'block';
+                }
+
+                // แสดงข้อมูลอื่นๆ
+                document.getElementById('modal-stu-license').textContent = data.stu_license;
                 document.getElementById('modal-stu-name').textContent = data.stu_name + ' ' + data.stu_lastname;
                 document.getElementById('modal-stu-tel').textContent = data.stu_tel || 'ไม่ระบุ';
+                document.getElementById('modal-stu-major').textContent = data.stu_major || 'ไม่ระบุ';
                 document.getElementById('modal-stu-faculty').textContent = data.stu_faculty || 'ไม่ระบุ';
                 document.getElementById('modal-stu-username').textContent = data.stu_username;
             })

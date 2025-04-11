@@ -10,7 +10,7 @@
     $stu_id = $_GET['stu_id'];
 
     // ดึงข้อมูลนักเรียนจากตาราง students
-    $sql = "SELECT stu_ID, stu_name, stu_lastname, stu_tel, stu_major, stu_faculty, stu_username
+    $sql = "SELECT stu_license, stu_name, stu_lastname, stu_tel, stu_major, stu_faculty, stu_username, stu_img
             FROM students
             WHERE stu_ID = :stu_id";
 
