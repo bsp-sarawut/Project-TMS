@@ -182,7 +182,7 @@
             <div class="navbar-links">
                 <?php if (isset($_SESSION['stu_name'])): ?>
 <?php
-    $user_image = !empty($_SESSION['stu_img']) ? "../" . htmlspecialchars($_SESSION['stu_img']) : "../images/default-avatar.png";
+    $user_image = !empty($_SESSION['stu_img']) ? "../uploads/" . htmlspecialchars($_SESSION['stu_img']) : "../images/default-avatar.png";
 ?>
                     <div class="dropdown">
                         <button class="dropdown-button">

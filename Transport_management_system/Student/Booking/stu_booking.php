@@ -194,7 +194,7 @@
                         <i class="fas fa-calendar-alt fa-3x mb-3"></i>
                         <h5 class="card-title">เช็คตารางรถ</h5>
                         <p class="card-text">ดูตารางการเดินรถ</p>
-                        <a href="#" class="btn btn-primary">ดูตาราง</a>
+                        <a href="Check_schedule.php" class="btn btn-primary">ดูตาราง</a>
                     </div>
                 </div>
             </div>
@@ -206,7 +206,7 @@
                         <i class="fas fa-cogs fa-3x mb-3"></i>
                         <h5 class="card-title">ตั้งค่า</h5>
                         <p class="card-text">จัดการการตั้งค่า</p>
-                        <a href="#" class="btn btn-primary">ตั้งค่า</a>
+                        <a href="setting.php" class="btn btn-primary">ตั้งค่า</a>
                     </div>
                 </div>
             </div>
