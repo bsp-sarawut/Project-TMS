@@ -12,7 +12,7 @@
         <a href="enrollment.php"><i class="fas fa-file-alt"></i> ข้อมูลการลงทะเบียน</a>
         <a href="queue.php"><i class="fas fa-bus"></i> จัดตารางรถ</a>
         <a href="show_queue.php"><i class="fas fa-table"></i> ตารางรถ</a>
-        <a href="#"><i class="fas fa-road"></i> ข้อมูลการเดินทาง</a>
+        <a href="queue_log.php"><i class="fas fa-road"></i> ข้อมูลการเดินทาง</a>
         <a href="#"><i class="fas fa-bell"></i> แจ้งข่าวสาร</a>
         <a href="#" class="logout" id="logout"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</a>
     </div>

@@ -1119,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             Swal.fire({
                                 icon: 'info',
                                 title: `คิวรถ ID: ${queueId}`,
-                                text: 'คิวนี้ถูกปิดงานและลบออกจากระบบแล้ว',
+                                text: 'คิวนี้ถูกปิดงานและถูกลบออกจากตารางแล้ว',
                                 confirmButtonText: 'ตกลง',
                                 timer: 3000,
                                 timerProgressBar: true
@@ -1137,14 +1137,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (data.status_car === 'ปิดงาน') {
                     deletedQueueIds.add(queueId);
-                    card.remove();
-                    Swal.fire({
-                        icon: 'info',
-                        title: `คิวรถ ID: ${queueId}`,
-                        text: 'คิวนี้ถูกปิดงาน สถานะนักเรียนถูกรีเซ็ตแล้ว',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000,
-                        timerProgressBar: true
+
+                    // รีเซ็ตสถานะนักเรียนในตาราง students
+                    fetch(`reset_student_status.php?queue_id=${queueId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(resetData => {
+                        if (resetData.success) {
+                            // อัปเดต UI: รีเซ็ตสถานะในตาราง
+                            const rows = card.querySelectorAll('.table tbody tr');
+                            rows.forEach(row => {
+                                const select = row.querySelector('.status-select');
+                                if (select) {
+                                    select.value = '';
+                                    row.setAttribute('data-status', '');
+                                    select.setAttribute('data-original-status', '');
+                                }
+                            });
+
+                            // ลบการ์ดคิวออกจากหน้า
+                            card.remove();
+                            Swal.fire({
+                                icon: 'info',
+                                title: `คิวรถ ID: ${queueId}`,
+                                text: 'คิวนี้ถูกปิดงานแล้ว สถานะนักเรียนถูกรีเซ็ตเรียบร้อย',
+                                confirmButtonText: 'ตกลง',
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                        } else {
+                            console.error(`Error resetting student status for queue ${queueId}:`, resetData.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error resetting student status for queue ${queueId}:`, error);
                     });
                     return;
                 }

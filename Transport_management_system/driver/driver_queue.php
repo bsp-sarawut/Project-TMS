@@ -122,28 +122,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status_car']) && isse
                 $log_stmt->bindParam(':stu_status', $stu_status, PDO::PARAM_STR);
                 $log_stmt->execute();
             }
-
-            $delete_qs_stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = :queue_id");
-            $delete_qs_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
-            $delete_qs_stmt->execute();
-
-            $delete_ql_stmt = $conn->prepare("DELETE FROM queue_log WHERE queue_id = :queue_id");
-            $delete_ql_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
-            $delete_ql_stmt->execute();
-
-            $delete_ssl_stmt = $conn->prepare("DELETE FROM student_status_log WHERE queue_id = :queue_id");
-            $delete_ssl_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
-            $delete_ssl_stmt->execute();
-
-            $delete_q_stmt = $conn->prepare("DELETE FROM queue WHERE queue_id = :queue_id");
-            $delete_q_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
-            $delete_q_stmt->execute();
         }
 
         $conn->commit();
 
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'message' => 'อัปเดตสถานะรถสำเร็จ' . ($status_car === 'ปิดงาน' ? ' และลบข้อมูลคิวเรียบร้อย' : '')]);
+        echo json_encode(['success' => true, 'message' => 'อัปเดตสถานะรถสำเร็จ' . ($status_car === 'ปิดงาน' ? ' คิวนี้จะไม่แสดงในตารางแล้ว' : '')]);
         exit;
     } catch (Exception $e) {
         $conn->rollBack();
@@ -185,7 +169,7 @@ try {
         LEFT JOIN students s ON qs.student_id = s.stu_ID
         LEFT JOIN province p ON q.province_id = p.PROVINCE_ID
         LEFT JOIN amphur a ON q.amphur_id = a.AMPHUR_ID
-        WHERE c.driver_id = :driver_id
+        WHERE c.driver_id = :driver_id AND q.status_car != 'ปิดงาน'
     ");
     $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
     $stmt->execute();
@@ -1088,7 +1072,7 @@ try {
                 Swal.fire({
                     icon: 'question',
                     title: 'ยืนยันการเปลี่ยนสถานะ',
-                    text: `คุณต้องการเปลี่ยนสถานะรถของคิว ${queueId} เป็น "${status}" จาก "${currentStatus}" หรือไม่?` + (status === 'ปิดงาน' ? ' คิวนี้จะถูกลบหลังจากปิดงาน' : ''),
+                    text: `คุณต้องการเปลี่ยนสถานะรถของคิว ${queueId} เป็น "${status}" จาก "${currentStatus}" หรือไม่?` + (status === 'ปิดงาน' ? ' คิวนี้จะไม่แสดงในตารางแล้ว' : ''),
                     showCancelButton: true,
                     confirmButtonText: 'ยืนยัน',
                     cancelButtonText: 'ยกเลิก',
