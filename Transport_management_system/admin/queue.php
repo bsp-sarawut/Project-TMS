@@ -366,8 +366,8 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 
         registrations.forEach(reg => {
             const paymentStatus = reg.payment_status === 'Pending Confirmation' 
-                ? '<span class="badge badge-success">ชำระแล้ว</span>' 
-                : '<span class="badge badge-danger">ยังไม่ชำระ</span>';
+                ? '<span class="badge badge-danger">ยังไม่ชำระ</span>' 
+                : '<span class="badge badge-success">ชำระแล้ว</span>';
             const row = `
                 <tr>
                     <td><input type="checkbox" name="students[]" value="${reg.stu_ID}"></td>

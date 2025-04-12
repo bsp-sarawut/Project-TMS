@@ -17,35 +17,84 @@ function fetchSingleResult($conn, $query, $params = []) {
     }
 }
 
-// ดึงจำนวนผู้ใช้ที่ Active
-$active_users = fetchSingleResult(
-    $conn,
-    "SELECT COUNT(*) AS active_users FROM students 
-     WHERE TIMESTAMPDIFF(SECOND, last_login, NOW()) < 1800 
-     AND stu_status = 'active'"
-)['active_users'] ?? 0;
+// ภาพรวมตัวชี้วัดหลัก
+$total_students = fetchSingleResult($conn, "SELECT COUNT(*) AS total_students FROM students")['total_students'] ?? 0;
 
-// ดึงจำนวนผู้ใช้ทั้งหมด
-$total_users = fetchSingleResult(
+$active_students = fetchSingleResult(
     $conn,
-    "SELECT COUNT(*) AS total_users FROM students"
-)['total_users'] ?? 0;
+    "SELECT COUNT(*) AS active_students FROM students 
+     WHERE login_status = 'active' 
+     AND TIMESTAMPDIFF(SECOND, last_login, NOW()) < 1800"
+)['active_students'] ?? 0;
 
-// ดึงจำนวนการลงทะเบียนขึ้นรถที่ชำระเงินแล้วในวันนี้
-$registered_paid_today = fetchSingleResult(
+$total_cars = fetchSingleResult($conn, "SELECT COUNT(*) AS total_cars FROM car")['total_cars'] ?? 0;
+
+$available_cars = fetchSingleResult(
     $conn,
-    "SELECT COUNT(*) AS registered_paid_today 
-     FROM transport_registration 
-     WHERE DATE(created_at) = CURDATE() 
-     AND payment_status = 'paid'"
-)['registered_paid_today'] ?? 0;
+    "SELECT COUNT(*) AS available_cars FROM car WHERE car_status = 'available'"
+)['available_cars'] ?? 0;
 
-// ดึงรายการผู้ใช้ทั้งหมด
+$pending_queues = fetchSingleResult(
+    $conn,
+    "SELECT COUNT(*) AS pending_queues FROM queue WHERE status_car IN ('ว่าง', 'ถึงจุดรับ')"
+)['pending_queues'] ?? 0;
+
+$registrations_today = fetchSingleResult(
+    $conn,
+    "SELECT COUNT(*) AS registrations_today FROM transport_registration WHERE DATE(created_at) = CURDATE()"
+)['registrations_today'] ?? 0;
+
+// การแจ้งเตือน
+$pending_confirmations = fetchSingleResult(
+    $conn,
+    "SELECT COUNT(*) AS pending_confirmations FROM transport_registration WHERE payment_status = 'Pending Confirmation'"
+)['pending_confirmations'] ?? 0;
+
+// ข้อมูลสำหรับกราฟแนวโน้มการลงทะเบียน 7 วัน
+$registration_data = [];
+$labels = [];
+for ($i = 6; $i >= 0; $i--) {
+    $date = date('Y-m-d', strtotime("-$i days"));
+    $count = fetchSingleResult(
+        $conn,
+        "SELECT COUNT(*) AS count FROM transport_registration WHERE DATE(created_at) = :date",
+        ['date' => $date]
+    )['count'] ?? 0;
+    $registration_data[] = $count;
+    $labels[] = date('d M', strtotime($date));
+}
+
+// ดึงคิวล่าสุด 5 รายการ
 try {
-    $stmt_users = $conn->prepare("SELECT stu_username, login_status, last_login, stu_name, stu_lastname 
-                                   FROM students ORDER BY stu_ID DESC");
-    $stmt_users->execute();
-    $users = $stmt_users->fetchAll(PDO::FETCH_ASSOC);
+    $stmt_queues = $conn->prepare(
+        "SELECT q.queue_id, q.location, q.status_car, q.queue_date, p.PROVINCE_NAME, a.AMPHUR_NAME, c.car_license 
+         FROM queue q 
+         JOIN province p ON q.province_id = p.PROVINCE_ID 
+         JOIN amphur a ON q.amphur_id = a.AMPHUR_ID 
+         JOIN car c ON q.car_id = c.car_id 
+         ORDER BY q.created_at DESC 
+         LIMIT 5"
+    );
+    $stmt_queues->execute();
+    $recent_queues = $stmt_queues->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $_SESSION['error'] = "เกิดข้อผิดพลาด: " . $e->getMessage();
+    header("location: index.php");
+    exit();
+}
+
+// ดึงการลงทะเบียนล่าสุด 5 รายการ
+try {
+    $stmt_registrations = $conn->prepare(
+        "SELECT tr.id, tr.payment_status, tr.created_at, s.stu_name, s.stu_lastname, r.location 
+         FROM transport_registration tr 
+         JOIN students s ON tr.stu_username = s.stu_username 
+         JOIN routes r ON tr.route_id = r.route_ID 
+         ORDER BY tr.created_at DESC 
+         LIMIT 5"
+    );
+    $stmt_registrations->execute();
+    $recent_registrations = $stmt_registrations->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error'] = "เกิดข้อผิดพลาด: " . $e->getMessage();
     header("location: index.php");
@@ -54,38 +103,33 @@ try {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
+    <title>Dashboard - ระบบจัดการการขนส่ง</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f3f4;
             color: #212529;
-            min-height: 100vh;
             margin: 0;
             padding: 0;
         }
         .content {
-            margin-left: 250px; /* ปรับตามขนาดของ sidebar */
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-        }
-        .content.collapsed {
-            margin-left: 60px;
+            margin-left: 250px;
+            padding: 30px;
         }
         .open-btn {
             position: fixed;
             top: 20px;
             left: 20px;
-            background: #0d6efd;
+            background: #1a73e8;
             color: #ffffff;
             border: none;
             border-radius: 5px;
@@ -95,26 +139,31 @@ try {
             z-index: 1000;
             transition: left 0.3s ease;
         }
-        .open-btn.collapsed {
-            left: 70px;
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 20px;
         }
         .card {
             background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             transition: box-shadow 0.3s ease;
         }
         .card:hover {
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
         .card-header {
-            background: #0d6efd;
+            background: #1a73e8;
             color: #ffffff;
             font-weight: 500;
-            padding: 12px;
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
+            padding: 12px 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .card-body {
             padding: 20px;
@@ -124,52 +173,38 @@ try {
         }
         .card-body i {
             font-size: 1.8rem;
-            color: #0d6efd;
+            color: #1a73e8;
         }
         .card-body h5 {
             margin: 0;
-            font-size: 1.1rem;
-            color: #212529;
+            font-size: 1rem;
+            color: #6c757d;
+            font-weight: 500;
         }
         .card-body p {
             margin: 0;
-            font-size: 1.4rem;
-            font-weight: 500;
-            color: #0d6efd;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #212529;
         }
         .card-body a {
-            color: #0d6efd;
+            color: #1a73e8;
             text-decoration: none;
         }
         .card-body a:hover {
-            color: #0056b3;
+            color: #1557b0;
         }
         .chart-container {
             background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            height: 100%;
-        }
-        .chart-container h3 {
-            color: #212529;
-            font-weight: 500;
-            margin-bottom: 20px;
-            font-size: 1.25rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
         .table-container {
             background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .table-container h3 {
-            color: #212529;
-            font-weight: 500;
-            margin-bottom: 20px;
-            font-size: 1.25rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
         .table {
             background: #ffffff;
@@ -178,8 +213,8 @@ try {
             overflow: hidden;
         }
         .table thead {
-            background: #0d6efd;
-            color: #ffffff;
+            background: #f8f9fa;
+            color: #212529;
         }
         .table th, .table td {
             vertical-align: middle;
@@ -190,63 +225,46 @@ try {
         .table tbody tr:hover {
             background: #f8f9fa;
         }
-        .status-active {
+        .status-pending {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        .status-paid {
             color: #28a745;
             font-weight: 500;
         }
-        .status-offline {
-            color: #6c757d;
+        .status-car-ว่าง { color: #6c757d; font-weight: 500; }
+        .status-car-ถึงจุดรับ { color: #1a73e8; font-weight: 500; }
+        .status-car-ออกเดินทาง { color: #28a745; font-weight: 500; }
+        .status-car-ถึงที่หมาย { color: #17a2b8; font-weight: 500; }
+        .status-car-ปิดงาน { color: #6c757d; font-weight: 500; }
+        .alert-card {
+            background: #ffffff;
+            border-left: 5px solid #dc3545;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+        .alert-card i {
+            font-size: 1.5rem;
+            color: #dc3545;
+        }
+        .alert-card p {
+            margin: 0;
+            font-size: 1rem;
+            color: #212529;
+        }
+        .alert-card a {
+            color: #1a73e8;
+            text-decoration: none;
             font-weight: 500;
         }
-        @media (max-width: 992px) {
-            .content {
-                margin-left: 60px;
-            }
-            .content.collapsed {
-                margin-left: 60px;
-            }
-            .open-btn {
-                left: 70px;
-            }
-            .card-body h5 {
-                font-size: 1rem;
-            }
-            .card-body p {
-                font-size: 1.2rem;
-            }
-            .card-body i {
-                font-size: 1.5rem;
-            }
-            .table th, .table td {
-                font-size: 0.9rem;
-                padding: 8px;
-            }
-        }
-        @media (max-width: 576px) {
-            .content {
-                margin-left: 0;
-                padding: 10px;
-            }
-            .open-btn {
-                left: 10px;
-            }
-            .open-btn.collapsed {
-                left: 10px;
-            }
-            .card-body {
-                flex-direction: column;
-                text-align: center;
-            }
-            .card-body i {
-                margin-bottom: 10px;
-            }
-            .table th, .table td {
-                font-size: 0.8rem;
-                padding: 6px;
-            }
-            .table th:nth-child(2), .table td:nth-child(2) {
-                display: none; /* ซ่อน Full Name ในหน้าจอเล็ก */
-            }
+        .alert-card a:hover {
+            color: #1557b0;
         }
     </style>
 </head>
@@ -257,92 +275,188 @@ try {
     <!-- Content -->
     <div class="content" id="content">
         <div class="container mt-4">
-            <!-- Summary Cards and Chart -->
+            <!-- System Overview -->
+            <div class="section-title">ภาพรวมระบบ</div>
             <div class="row">
-                <!-- Active Users Card -->
-                <div class="col-lg-3 col-md-6 mb-4">
+                <div class="col-lg-4 mb-4">
                     <div class="card">
                         <div class="card-header">
-                            <i class="fas fa-users me-2"></i> Active Users
-                        </div>
-                        <div class="card-body">
-                            <i class="fas fa-user-check"></i>
-                            <div>
-                                <h5>Active Users</h5>
-                                <p><?php echo $active_users; ?> Users</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Users Card -->
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <i class="fas fa-users-cog me-2"></i> Total Users
+                            <i class="fas fa-users"></i> นักเรียนทั้งหมด
                         </div>
                         <div class="card-body">
                             <i class="fas fa-users"></i>
                             <div>
-                                <h5>Total Users</h5>
-                                <p><?php echo $total_users; ?> Users</p>
+                                <h5>นักเรียนทั้งหมด</h5>
+                                <p><?php echo $total_students; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- New Registered Students Paid Today Card -->
-                <div class="col-lg-3 col-md-6 mb-4">
+                <div class="col-lg-4 mb-4">
                     <div class="card">
                         <div class="card-header">
-                            <i class="fas fa-user-plus me-2"></i> New Registrations (Paid)
+                            <i class="fas fa-user-check"></i> นักเรียนที่ Active
                         </div>
                         <div class="card-body">
-                            <i class="fas fa-money-check-alt"></i>
+                            <i class="fas fa-user-check"></i>
                             <div>
-                                <h5>New Registered Students (Paid)</h5>
-                                <p><a href="enrollment.php"><?php echo $registered_paid_today; ?> Students</a></p>
+                                <h5>นักเรียนที่ Active</h5>
+                                <p><?php echo $active_students; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Chart -->
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="chart-container">
-                        <h3>User Activity Overview</h3>
-                        <canvas id="userChart"></canvas>
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-ticket-alt"></i> การลงทะเบียนวันนี้
+                        </div>
+                        <div class="card-body">
+                            <i class="fas fa-ticket-alt"></i>
+                            <div>
+                                <h5>การลงทะเบียนวันนี้</h5>
+                                <p><?php echo $registrations_today; ?></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Table of Users -->
+            <!-- Car and Queue Overview -->
+            <div class="section-title">ภาพรวมรถและคิว</div>
+            <div class="row">
+                <div class="col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-bus"></i> รถทั้งหมด
+                        </div>
+                        <div class="card-body">
+                            <i class="fas fa-bus"></i>
+                            <div>
+                                <h5>รถทั้งหมด</h5>
+                                <p><?php echo $total_cars; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-check-circle"></i> รถที่พร้อมใช้งาน
+                        </div>
+                        <div class="card-body">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <h5>รถที่พร้อมใช้งาน</h5>
+                                <p><?php echo $available_cars; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-hourglass-half"></i> คิวที่รอดำเนินการ
+                        </div>
+                        <div class="card-body">
+                            <i class="fas fa-hourglass-half"></i>
+                            <div>
+                                <h5>คิวที่รอดำเนินการ</h5>
+                                <p><?php echo $pending_queues; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 mb-4">
+                    <div class="chart-container">
+                        <canvas id="registrationChart" height="150"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div class="section-title">การแจ้งเตือน</div>
             <div class="row">
                 <div class="col-12">
+                    <?php if ($pending_confirmations > 0): ?>
+                        <div class="alert-card">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <p>คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน <a href="pending_registrations.php">ดูรายละเอียด</a></p>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert-card" style="border-left-color: #28a745;">
+                            <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                            <p>ไม่มีรายการที่ต้องดำเนินการในขณะนี้</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="row">
+                <!-- Recent Queues -->
+                <div class="col-lg-6 mb-4">
                     <div class="table-container">
-                        <h3>User List</h3>
-                        <table class="table table-bordered">
+                        <div class="section-title">คิวล่าสุด</div>
+                        <table class="table">
                             <thead>
                                 <tr>
-                                    <th scope="col">Username</th>
-                                    <th scope="col">Full Name</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Last Login</th>
+                                    <th>รหัสคิว</th>
+                                    <th>สถานที่</th>
+                                    <th>จังหวัด</th>
+                                    <th>อำเภอ</th>
+                                    <th>รถ</th>
+                                    <th>สถานะ</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php
-                                foreach ($users as $user) {
-                                    $last_login = $user['last_login'] ? date('d M Y H:i', strtotime($user['last_login'])) : 'Never';
-                                    $status_class = $user['login_status'] === 'active' ? 'status-active' : 'status-offline';
-                                    echo "<tr>";
-                                    echo "<td>" . htmlspecialchars($user['stu_username']) . "</td>";
-                                    echo "<td>" . htmlspecialchars($user['stu_name'] . " " . $user['stu_lastname']) . "</td>";
-                                    echo "<td><span class='$status_class'>" . htmlspecialchars($user['login_status']) . "</span></td>";
-                                    echo "<td>" . $last_login . "</td>";
-                                    echo "</tr>";
-                                }
-                                ?>
+                                <?php foreach ($recent_queues as $queue): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($queue['queue_id']); ?></td>
+                                        <td><?php echo htmlspecialchars($queue['location']); ?></td>
+                                        <td><?php echo htmlspecialchars($queue['PROVINCE_NAME']); ?></td>
+                                        <td><?php echo htmlspecialchars($queue['AMPHUR_NAME']); ?></td>
+                                        <td><?php echo htmlspecialchars($queue['car_license']); ?></td>
+                                        <td>
+                                            <span class="status-car-<?php echo htmlspecialchars($queue['status_car']); ?>">
+                                                <?php echo htmlspecialchars($queue['status_car']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Registrations -->
+                <div class="col-lg-6 mb-4">
+                    <div class="table-container">
+                        <div class="section-title">การลงทะเบียนล่าสุด</div>
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>รหัส</th>
+                                    <th>นักเรียน</th>
+                                    <th>สถานที่</th>
+                                    <th>วันที่ลงทะเบียน</th>
+                                    <th>สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($recent_registrations as $reg): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($reg['id']); ?></td>
+                                        <td><?php echo htmlspecialchars($reg['stu_name'] . ' ' . $reg['stu_lastname']); ?></td>
+                                        <td><?php echo htmlspecialchars($reg['location']); ?></td>
+                                        <td><?php echo date('d M Y H:i', strtotime($reg['created_at'])); ?></td>
+                                        <td>
+                                            <span class="status-<?php echo $reg['payment_status'] == 'Paid' ? 'paid' : 'pending'; ?>">
+                                                <?php echo htmlspecialchars($reg['payment_status']); ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
@@ -364,41 +478,55 @@ try {
         openBtn.addEventListener('click', () => {
             isCollapsed = !isCollapsed;
             if (isCollapsed) {
-                content.classList.add('collapsed');
-                openBtn.classList.add('collapsed');
-                document.querySelector('.sidebar').classList.add('collapsed'); // สมมติว่า sidebar มี class นี้
+                content.style.marginLeft = '60px';
+                openBtn.style.left = '70px';
+                document.querySelector('.sidebar').classList.add('collapsed');
             } else {
-                content.classList.remove('collapsed');
-                openBtn.classList.remove('collapsed');
+                content.style.marginLeft = '250px';
+                openBtn.style.left = '20px';
                 document.querySelector('.sidebar').classList.remove('collapsed');
             }
         });
 
-        // Chart.js - User Activity Overview
-        const ctx = document.getElementById('userChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
+        // Registration Trend Chart
+        const registrationChartCtx = document.getElementById('registrationChart').getContext('2d');
+        new Chart(registrationChartCtx, {
+            type: 'line',
             data: {
-                labels: ['Active Users', 'Inactive Users'],
+                labels: <?php echo json_encode($labels); ?>,
                 datasets: [{
-                    data: [<?php echo $active_users; ?>, <?php echo $total_users - $active_users; ?>],
-                    backgroundColor: ['#0d6efd', '#6c757d'],
-                    borderColor: ['#ffffff', '#ffffff'],
-                    borderWidth: 2
+                    label: 'การลงทะเบียน',
+                    data: <?php echo json_encode($registration_data); ?>,
+                    borderColor: '#1a73e8',
+                    backgroundColor: 'rgba(26, 115, 232, 0.1)',
+                    fill: true,
+                    tension: 0.4
                 }]
             },
             options: {
                 responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#212529',
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#6c757d',
                             font: {
-                                size: 12,
-                                family: "'Roboto', sans-serif"
+                                family: "'Inter', sans-serif"
                             }
                         }
+                    },
+                    x: {
+                        ticks: {
+                            color: '#6c757d',
+                            font: {
+                                family: "'Inter', sans-serif"
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
             }
