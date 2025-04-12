@@ -2,12 +2,17 @@
 session_start();
 require_once("config/condb.php");
 
+// เปิดการแสดงข้อผิดพลาด (ใช้เฉพาะตอนพัฒนา)
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
 header("Cache-Control: post-check=0, pre-check=0", false);
 header("Pragma: no-cache");
 
 if (!isset($_SESSION['driver_user'])) {
-    echo "<script>
+    echo <<<EOD
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'error',
@@ -18,7 +23,8 @@ if (!isset($_SESSION['driver_user'])) {
                 window.location.href = 'driver_signin.php';
             });
         });
-    </script>";
+    </script>
+    EOD;
     exit;
 }
 
@@ -36,7 +42,8 @@ if (!$driver_id) {
 }
 
 if (!$driver_id) {
-    echo "<script>
+    echo <<<EOD
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'error',
@@ -45,32 +52,101 @@ if (!$driver_id) {
                 confirmButtonText: 'ตกลง'
             });
         });
-    </script>";
+    </script>
+    EOD;
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status_car'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status_car']) && isset($_POST['queue_id'])) {
     try {
         $status_car = $_POST['status_car'];
+        $queue_id = (int)$_POST['queue_id'];
         $valid_statuses = ['ว่าง', 'ถึงจุดรับ', 'ออกเดินทาง', 'ถึงที่หมาย', 'ปิดงาน'];
         if (!in_array($status_car, $valid_statuses)) {
             throw new Exception('สถานะรถไม่ถูกต้อง');
         }
 
-        $stmt = $conn->prepare("
-            UPDATE queue q
+        $check_stmt = $conn->prepare("
+            SELECT q.queue_id
+            FROM queue q
             JOIN car c ON q.car_id = c.car_id
-            SET q.status_car = :status_car
-            WHERE c.driver_id = :driver_id
+            WHERE q.queue_id = :queue_id AND c.driver_id = :driver_id
+        ");
+        $check_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+        $check_stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
+        $check_stmt->execute();
+        if (!$check_stmt->fetch()) {
+            throw new Exception('คิวนี้ไม่เกี่ยวข้องกับคนขับ');
+        }
+
+        $conn->beginTransaction();
+
+        $stmt = $conn->prepare("
+            UPDATE queue
+            SET status_car = :status_car
+            WHERE queue_id = :queue_id
         ");
         $stmt->bindParam(':status_car', $status_car, PDO::PARAM_STR);
-        $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
+        $stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
         $stmt->execute();
 
+        if (in_array($status_car, ['ถึงจุดรับ', 'ออกเดินทาง', 'ถึงที่หมาย', 'ปิดงาน'])) {
+            $log_stmt = $conn->prepare("
+                INSERT INTO queue_log (queue_id, status_car, log_timestamp)
+                VALUES (:queue_id, :status_car, NOW())
+            ");
+            $log_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $log_stmt->bindParam(':status_car', $status_car, PDO::PARAM_STR);
+            $log_stmt->execute();
+        }
+
+        if ($status_car === 'ปิดงาน') {
+            $students_stmt = $conn->prepare("
+                SELECT s.stu_ID, s.stu_status
+                FROM queue_student qs
+                JOIN students s ON qs.student_id = s.stu_ID
+                WHERE qs.queue_id = :queue_id
+            ");
+            $students_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $students_stmt->execute();
+            $students = $students_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($students as $student) {
+                $stu_status = $student['stu_status'] ?: 'ขาด';
+                $log_stmt = $conn->prepare("
+                    INSERT INTO student_status_log (queue_id, student_id, stu_status, log_timestamp)
+                    VALUES (:queue_id, :student_id, :stu_status, NOW())
+                ");
+                $log_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+                $log_stmt->bindParam(':student_id', $student['stu_ID'], PDO::PARAM_INT);
+                $log_stmt->bindParam(':stu_status', $stu_status, PDO::PARAM_STR);
+                $log_stmt->execute();
+            }
+
+            $delete_qs_stmt = $conn->prepare("DELETE FROM queue_student WHERE queue_id = :queue_id");
+            $delete_qs_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $delete_qs_stmt->execute();
+
+            $delete_ql_stmt = $conn->prepare("DELETE FROM queue_log WHERE queue_id = :queue_id");
+            $delete_ql_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $delete_ql_stmt->execute();
+
+            $delete_ssl_stmt = $conn->prepare("DELETE FROM student_status_log WHERE queue_id = :queue_id");
+            $delete_ssl_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $delete_ssl_stmt->execute();
+
+            $delete_q_stmt = $conn->prepare("DELETE FROM queue WHERE queue_id = :queue_id");
+            $delete_q_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+            $delete_q_stmt->execute();
+        }
+
+        $conn->commit();
+
         header('Content-Type: application/json');
-        echo json_encode(['success' => true, 'message' => 'อัพเดตสถานะรถสำเร็จ']);
+        echo json_encode(['success' => true, 'message' => 'อัปเดตสถานะรถสำเร็จ' . ($status_car === 'ปิดงาน' ? ' และลบข้อมูลคิวเรียบร้อย' : '')]);
         exit;
     } catch (Exception $e) {
+        $conn->rollBack();
         header('Content-Type: application/json');
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
         exit;
@@ -78,7 +154,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['status_car'])) {
 }
 
 $queues = [];
-$current_status = 'ว่าง';
 function getMonthName($monthNumber) {
     $months = [
         1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
@@ -88,6 +163,12 @@ function getMonthName($monthNumber) {
     return $months[$monthNumber] ?? 'ไม่ทราบเดือน';
 }
 try {
+    // ตรวจสอบ $driver_id
+    if (empty($driver_id)) {
+        throw new Exception('Driver ID is empty or invalid');
+    }
+    echo "<!-- Debugging: Driver ID = $driver_id -->";
+
     $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
     $stmt = $conn->prepare("
         SELECT q.queue_id, s.stu_ID, s.stu_name, s.stu_lastname, s.stu_tel, 
@@ -105,26 +186,94 @@ try {
         LEFT JOIN province p ON q.province_id = p.PROVINCE_ID
         LEFT JOIN amphur a ON q.amphur_id = a.AMPHUR_ID
         WHERE c.driver_id = :driver_id
-        ORDER BY q.queue_date DESC, q.queue_id DESC
     ");
     $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
     $stmt->execute();
     $queues = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (!empty($queues) && !empty($queues[0]['status_car'])) {
-        $current_status = $queues[0]['status_car'];
+    $grouped_queues = [];
+    $current_date = new DateTime();
+    foreach ($queues as $queue) {
+        $queue_id = $queue['queue_id'];
+        $grouped_queues[$queue_id][] = $queue;
+    }
+
+    $queue_with_distance = [];
+    $queue_dates = [];
+    foreach ($grouped_queues as $queue_id => $queue_rows) {
+        $queue_date_str = $queue_rows[0]['queue_date'];
+        if ($queue_date_str) {
+            $queue_date = new DateTime($queue_date_str);
+            $interval = $current_date->diff($queue_date);
+            $days_difference = $interval->days;
+            if ($queue_date < $current_date) {
+                $days_difference = -$days_difference;
+            }
+            $queue_dates[] = $queue_date->format('Y-m-d');
+        } else {
+            $days_difference = PHP_INT_MAX;
+        }
+        $queue_with_distance[] = [
+            'queue_id' => $queue_id,
+            'days_difference' => $days_difference,
+            'queue_date' => $queue_date_str ? new DateTime($queue_date_str) : null,
+            'rows' => $queue_rows
+        ];
+    }
+
+    usort($queue_with_distance, function($a, $b) {
+        if ($a['days_difference'] === $b['days_difference']) {
+            return $b['queue_id'] <=> $a['queue_id'];
+        }
+        return $a['days_difference'] <=> $b['days_difference'];
+    });
+
+    $queues_per_page = 1;
+    $total_queues = count($queue_with_distance);
+    $total_pages = ceil($total_queues / $queues_per_page);
+    $current_page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+    $start_index = ($current_page - 1) * $queues_per_page;
+    $end_index = min($start_index + $queues_per_page, $total_queues);
+    $paginated_queues = array_slice($queue_with_distance, $start_index, $queues_per_page);
+
+    $logs = [];
+    $student_logs = [];
+    foreach (array_unique(array_column($queues, 'queue_id')) as $queue_id) {
+        $log_stmt = $conn->prepare("
+            SELECT status_car, log_timestamp
+            FROM queue_log
+            WHERE queue_id = :queue_id
+            ORDER BY log_timestamp ASC
+        ");
+        $log_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+        $log_stmt->execute();
+        $logs[$queue_id] = $log_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $student_log_stmt = $conn->prepare("
+            SELECT s.stu_name, s.stu_lastname, ssl.stu_status, ssl.log_timestamp
+            FROM student_status_log ssl
+            JOIN students s ON ssl.student_id = s.stu_ID
+            WHERE ssl.queue_id = :queue_id
+            ORDER BY ssl.log_timestamp ASC
+        ");
+        $student_log_stmt->bindParam(':queue_id', $queue_id, PDO::PARAM_INT);
+        $student_log_stmt->execute();
+        $student_logs[$queue_id] = $student_log_stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 } catch (Exception $e) {
-    echo "<script>
+    $errorMessage = htmlspecialchars($e->getMessage());
+    echo <<<EOD
+    <script>
         document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถดึงข้อมูลคิวงานได้: " . htmlspecialchars($e->getMessage()) . "',
+                text: 'ไม่สามารถดึงข้อมูลคิวงานได้: $errorMessage',
                 confirmButtonText: 'ตกลง'
             });
         });
-    </script>";
+    </script>
+    EOD;
 }
 ?>
 
@@ -139,7 +288,10 @@ try {
     <title>ดูคิวงาน</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="assets/flatpickr/flatpickr.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="assets/flatpickr/flatpickr.js"></script>
+    <script src="assets/flatpickr/th.js"></script>
     <style>
         body {
             background: #f5f7fa;
@@ -326,6 +478,149 @@ try {
             outline: none;
             border-color: #28a745;
         }
+        .log-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        .log-section h6 {
+            color: #003087;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .log-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .log-section li {
+            padding: 5px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .log-section li:last-child {
+            border-bottom: none;
+        }
+        .log-section .status-label {
+            font-weight: 500;
+            color: #4a4a4a;
+        }
+        .log-section .timestamp {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        .queue-section {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        .queue-section:last-child {
+            border-bottom: none;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 8px;
+        }
+        .pagination ul {
+            display: flex;
+            flex-direction: row;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            gap: 8px;
+        }
+        .pagination .page-item {
+            display: inline-flex;
+        }
+        .pagination .page-link {
+            padding: 8px 14px;
+            border: 1px solid #003087;
+            border-radius: 5px;
+            color: #003087;
+            background-color: #ffffff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pagination .page-link:hover {
+            background-color: #003087;
+            color: #ffffff;
+        }
+        .pagination .page-item.active .page-link {
+            background-color: #003087;
+            color: #ffffff;
+            border-color: #003087;
+        }
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .calendar-filter {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .calendar-filter label {
+            font-size: 1rem;
+            color: #003087;
+            margin-right: 10px;
+        }
+        .calendar-filter input {
+            padding: 8px 12px;
+            border: 1px solid #003087;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            color: #4a4a4a;
+            width: 200px;
+        }
+        .flatpickr-calendar {
+            z-index: 9999 !important;
+            width: 100% !important;
+            max-width: 300px !important;
+            margin: 0 auto !important;
+        }
+        .flatpickr-day.has-queue {
+            position: relative;
+        }
+        .flatpickr-day.has-queue::after {
+            content: '';
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 6px;
+            background-color: #28a745;
+            border-radius: 50%;
+        }
+        .clear-filter {
+            margin-left: 10px;
+            padding: 8px 12px;
+            background-color: #dc3545;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .clear-filter:hover {
+            background-color: #c82333;
+        }
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -336,7 +631,7 @@ try {
             .card-title {
                 font-size: 1.4rem;
             }
-            .queue-details {
+            .queue-details, .log-section {
                 font-size: 0.9rem;
                 padding: 10px;
             }
@@ -361,6 +656,27 @@ try {
             .current-status {
                 font-size: 0.9rem;
             }
+            .log-section {
+                font-size: 0.85rem;
+            }
+            .pagination ul {
+                gap: 6px;
+            }
+            .pagination .page-link {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            .pagination-info {
+                font-size: 0.85rem;
+            }
+            .calendar-filter input {
+                width: 180px;
+                font-size: 0.85rem;
+            }
+            .clear-filter {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
         }
         @media (max-width: 576px) {
             .container {
@@ -369,7 +685,7 @@ try {
             .card-title {
                 font-size: 1.2rem;
             }
-            .queue-details {
+            .queue-details, .log-section {
                 font-size: 0.85rem;
             }
             .table-responsive {
@@ -401,6 +717,43 @@ try {
                 max-width: none;
                 font-size: 0.85rem;
             }
+            .log-section {
+                font-size: 0.8rem;
+            }
+            .pagination ul {
+                gap: 5px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .pagination .page-link {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+            .pagination-info {
+                font-size: 0.8rem;
+            }
+            .calendar-filter {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .calendar-filter label {
+                font-size: 0.9rem;
+            }
+            .calendar-filter input {
+                width: 100%;
+                max-width: 200px;
+                font-size: 0.8rem;
+            }
+            .flatpickr-calendar {
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+            }
+            .clear-filter {
+                padding: 5px 8px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -410,112 +763,179 @@ try {
     <div class="container">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">คิวงานของฉัน</h5>
-                <div class="current-status">
-                    <span>สถานะรถปัจจุบัน:</span>
-                    <select id="status-select" class="status-select">
-                        <option value="ว่าง" <?php echo $current_status === 'ว่าง' ? 'selected' : ''; ?>>ว่าง</option>
-                        <option value="ถึงจุดรับ" <?php echo $current_status === 'ถึงจุดรับ' ? 'selected' : ''; ?>>ถึงจุดรับ</option>
-                        <option value="ออกเดินทาง" <?php echo $current_status === 'ออกเดินทาง' ? 'selected' : ''; ?>>ออกเดินทาง</option>
-                        <option value="ถึงที่หมาย" <?php echo $current_status === 'ถึงที่หมาย' ? 'selected' : ''; ?>>ถึงที่หมาย</option>
-                        <option value="ปิดงาน" <?php echo $current_status === 'ปิดงาน' ? 'selected' : ''; ?>>ปิดงาน</option>
-                    </select>
+                <h5 class="card-title">คิวงานของฉัน (คุณดูแลทั้งหมด <?php echo $total_queues; ?> คิว)</h5>
+                <div class="calendar-filter">
+                    <label for="date-filter">เลือกวันที่เพื่อกรองคิวงาน:</label>
+                    <input type="text" id="date-filter" placeholder="เลือกวันที่">
+                    <button class="clear-filter" id="clear-filter">ล้างตัวกรอง</button>
                 </div>
-                <div class="status-buttons">
-                    <button class="status-btn status-vacant <?php echo $current_status === 'ว่าง' ? 'active' : ''; ?>" data-status="ว่าง">ว่าง</button>
-                    <button class="status-btn status-arrived <?php echo $current_status === 'ถึงจุดรับ' ? 'active' : ''; ?>" data-status="ถึงจุดรับ">ถึงจุดรับ</button>
-                    <button class="status-btn status-departed <?php echo $current_status === 'ออกเดินทาง' ? 'active' : ''; ?>" data-status="ออกเดินทาง">ออกเดินทาง</button>
-                    <button class="status-btn status-destination <?php echo $current_status === 'ถึงที่หมาย' ? 'active' : ''; ?>" data-status="ถึงที่หมาย">ถึงที่หมาย</button>
-                    <button class="status-btn status-closed <?php echo $current_status === 'ปิดงาน' ? 'active' : ''; ?>" data-status="ปิดงาน">ปิดงาน</button>
-                </div>
-                <?php if (empty($queues)): ?>
-                    <div class="no-data">ไม่มีคิวงานในขณะนี้</div>
-                <?php else: ?>
-                    <?php
-                    $grouped_queues = [];
-                    foreach ($queues as $queue) {
-                        $grouped_queues[$queue['queue_id']][] = $queue;
-                    }
-                    ?>
-                    <?php foreach ($grouped_queues as $queue_id => $queue_rows): ?>
-                        <div class="queue-details">
-                            <p><strong>รหัสคิว:</strong> <?php echo htmlspecialchars($queue_rows[0]['queue_id']); ?></p>
-                            <p><strong>ประจำวันที่:</strong> 
-                                <?php 
-                                if ($queue_rows[0]['queue_date']) {
-                                    $date = new DateTime($queue_rows[0]['queue_date']);
-                                    $day = $date->format('j');
-                                    $month = getMonthName($date->format('n'));
-                                    $year = $date->format('Y') + 543;
-                                    echo "$day $month $year";
-                                } else {
-                                    echo 'ไม่ระบุ';
-                                }
-                                ?>
-                            </p>
-                            <p><strong>สถานที่รับ:</strong> <?php echo htmlspecialchars($queue_rows[0]['location']); ?></p>
-                            <p><strong>จังหวัด:</strong> <?php echo htmlspecialchars($queue_rows[0]['PROVINCE_NAME'] ?? 'ไม่ระบุ'); ?></p>
-                            <p><strong>อำเภอ:</strong> <?php echo htmlspecialchars($queue_rows[0]['AMPHUR_NAME'] ?? 'ไม่ระบุ'); ?></p>
-                            <p><strong>จำนวนนักศึกษา:</strong> <?php echo htmlspecialchars($queue_rows[0]['student_count'] ?? '0'); ?> คน</p>
-                        </div>
-                        <div class="table-responsive" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">
-                            <table class="table table-bordered table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>ชื่อ-นามสกุล</th>
-                                        <th>เบอร์โทร</th>
-                                        <th>สถานะ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($queue_rows as $row): ?>
-                                        <?php
-                                        $display_status = '-';
-                                        $status_class = 'idle';
-                                        if ($row['stu_status'] !== null && $row['stu_status'] !== '') {
-                                            switch ($row['stu_status']) {
-                                                case 'ขึ้นรถแล้ว':
-                                                    $display_status = 'ขึ้นรถแล้ว';
-                                                    $status_class = 'boarded';
-                                                    break;
-                                                case 'ลา':
-                                                    $display_status = 'ลา';
-                                                    $status_class = 'absent';
-                                                    break;
-                                                case 'สาย':
-                                                    $display_status = 'สาย';
-                                                    $status_class = 'no-show';
-                                                    break;
-                                                case 'เลิกเรียนแล้ว':
-                                                    $display_status = 'เลิกเรียนแล้ว';
-                                                    $status_class = 'finished';
-                                                    break;
-                                                default:
-                                                    $display_status = 'ว่าง';
-                                                    $status_class = 'idle';
-                                                    break;
-                                            }
+                <div id="queue-list">
+                    <?php if (empty($queue_with_distance)): ?>
+                        <div class="no-data">ไม่มีคิวงานในขณะนี้</div>
+                    <?php else: ?>
+                        <?php foreach ($queue_with_distance as $queue_data): ?>
+                            <?php
+                            $queue_id = $queue_data['queue_id'];
+                            $queue_rows = $queue_data['rows'];
+                            $queue_date = $queue_rows[0]['queue_date'] ? (new DateTime($queue_rows[0]['queue_date']))->format('Y-m-d') : '';
+                            ?>
+                            <div class="queue-section" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>" data-queue-date="<?php echo htmlspecialchars($queue_date); ?>">
+                                <div class="queue-details">
+                                    <p><strong>รหัสคิว:</strong> <?php echo htmlspecialchars($queue_id); ?></p>
+                                    <p><strong>ประจำวันที่:</strong> 
+                                        <?php 
+                                        if ($queue_rows[0]['queue_date']) {
+                                            $date = new DateTime($queue_rows[0]['queue_date']);
+                                            $day = $date->format('j');
+                                            $month = getMonthName($date->format('n'));
+                                            $year = $date->format('Y') + 543;
+                                            echo "$day $month $year";
+                                        } else {
+                                            echo 'ไม่ระบุ';
                                         }
                                         ?>
-                                        <tr data-stu-status="<?php echo htmlspecialchars($row['stu_status'] ?? ''); ?>">
-                                            <td title="<?php echo htmlspecialchars(($row['stu_name'] && $row['stu_lastname']) ? $row['stu_name'] . ' ' . $row['stu_lastname'] : '-'); ?>">
-                                                <?php echo htmlspecialchars(($row['stu_name'] && $row['stu_lastname']) ? $row['stu_name'] . ' ' . $row['stu_lastname'] : '-'); ?>
-                                            </td>
-                                            <td title="<?php echo htmlspecialchars($row['stu_tel'] ?? 'ไม่ระบุ'); ?>">
-                                                <?php echo htmlspecialchars($row['stu_tel'] ?? 'ไม่ระบุ'); ?>
-                                            </td>
-                                            <td>
-                                                <span class="status-student-<?php echo $status_class; ?>">
-                                                    <?php echo htmlspecialchars($display_status); ?>
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                                    </p>
+                                    <p><strong>สถานที่รับ:</strong> <?php echo htmlspecialchars($queue_rows[0]['location']); ?></p>
+                                    <p><strong>จังหวัด:</strong> <?php echo htmlspecialchars($queue_rows[0]['PROVINCE_NAME'] ?? 'ไม่ระบุ'); ?></p>
+                                    <p><strong>อำเภอ:</strong> <?php echo htmlspecialchars($queue_rows[0]['AMPHUR_NAME'] ?? 'ไม่ระบุ'); ?></p>
+                                    <p><strong>จำนวนนักศึกษา:</strong> <?php echo htmlspecialchars($queue_rows[0]['student_count'] ?? '0'); ?> คน</p>
+                                </div>
+                                <div class="current-status">
+                                    <span>สถานะรถปัจจุบัน:</span>
+                                    <select class="status-select" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">
+                                        <option value="ว่าง" <?php echo $queue_rows[0]['status_car'] === 'ว่าง' ? 'selected' : ''; ?>>ว่าง</option>
+                                        <option value="ถึงจุดรับ" <?php echo $queue_rows[0]['status_car'] === 'ถึงจุดรับ' ? 'selected' : ''; ?>>ถึงจุดรับ</option>
+                                        <option value="ออกเดินทาง" <?php echo $queue_rows[0]['status_car'] === 'ออกเดินทาง' ? 'selected' : ''; ?>>ออกเดินทาง</option>
+                                        <option value="ถึงที่หมาย" <?php echo $queue_rows[0]['status_car'] === 'ถึงที่หมาย' ? 'selected' : ''; ?>>ถึงที่หมาย</option>
+                                        <option value="ปิดงาน" <?php echo $queue_rows[0]['status_car'] === 'ปิดงาน' ? 'selected' : ''; ?>>ปิดงาน</option>
+                                    </select>
+                                </div>
+                                <div class="status-buttons">
+                                    <button class="status-btn status-vacant <?php echo $queue_rows[0]['status_car'] === 'ว่าง' ? 'active' : ''; ?>" data-status="ว่าง" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">ว่าง</button>
+                                    <button class="status-btn status-arrived <?php echo $queue_rows[0]['status_car'] === 'ถึงจุดรับ' ? 'active' : ''; ?>" data-status="ถึงจุดรับ" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">ถึงจุดรับ</button>
+                                    <button class="status-btn status-departed <?php echo $queue_rows[0]['status_car'] === 'ออกเดินทาง' ? 'active' : ''; ?>" data-status="ออกเดินทาง" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">ออกเดินทาง</button>
+                                    <button class="status-btn status-destination <?php echo $queue_rows[0]['status_car'] === 'ถึงที่หมาย' ? 'active' : ''; ?>" data-status="ถึงที่หมาย" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">ถึงที่หมาย</button>
+                                    <button class="status-btn status-closed <?php echo $queue_rows[0]['status_car'] === 'ปิดงาน' ? 'active' : ''; ?>" data-status="ปิดงาน" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">ปิดงาน</button>
+                                </div>
+                                <div class="table-responsive" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ชื่อ-นามสกุล</th>
+                                                <th>เบอร์โทร</th>
+                                                <th>สถานะ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($queue_rows as $row): ?>
+                                                <?php
+                                                $display_status = '-';
+                                                $status_class = 'idle';
+                                                if ($row['stu_status'] !== null && $row['stu_status'] !== '') {
+                                                    switch ($row['stu_status']) {
+                                                        case 'ขึ้นรถแล้ว':
+                                                            $display_status = 'ขึ้นรถแล้ว';
+                                                            $status_class = 'boarded';
+                                                            break;
+                                                        case 'ลา':
+                                                            $display_status = 'ลา';
+                                                            $status_class = 'absent';
+                                                            break;
+                                                        case 'สาย':
+                                                            $display_status = 'สาย';
+                                                            $status_class = 'no-show';
+                                                            break;
+                                                        case 'เลิกเรียนแล้ว':
+                                                            $display_status = 'เลิกเรียนแล้ว';
+                                                            $status_class = 'finished';
+                                                            break;
+                                                        default:
+                                                            $display_status = 'ว่าง';
+                                                            $status_class = 'idle';
+                                                            break;
+                                                    }
+                                                }
+                                                ?>
+                                                <tr data-stu-status="<?php echo htmlspecialchars($row['stu_status'] ?? ''); ?>">
+                                                    <td title="<?php echo htmlspecialchars(($row['stu_name'] && $row['stu_lastname']) ? $row['stu_name'] . ' ' . $row['stu_lastname'] : '-'); ?>">
+                                                        <?php echo htmlspecialchars(($row['stu_name'] && $row['stu_lastname']) ? $row['stu_name'] . ' ' . $row['stu_lastname'] : '-'); ?>
+                                                    </td>
+                                                    <td title="<?php echo htmlspecialchars($row['stu_tel'] ?? 'ไม่ระบุ'); ?>">
+                                                        <?php echo htmlspecialchars($row['stu_tel'] ?? 'ไม่ระบุ'); ?>
+                                                    </td>
+                                                    <td>
+                                                        <span class="status-student-<?php echo $status_class; ?>">
+                                                            <?php echo htmlspecialchars($display_status); ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div class="log-section">
+                                    <h6>ประวัติการทำงาน (คิว <?php echo htmlspecialchars($queue_id); ?>)</h6>
+                                    <ul>
+                                        <?php if (!empty($logs[$queue_id])): ?>
+                                            <?php foreach ($logs[$queue_id] as $log): ?>
+                                                <li>
+                                                    <span class="status-label"><?php echo htmlspecialchars($log['status_car']); ?>:</span>
+                                                    <span class="timestamp">
+                                                        <?php 
+                                                        $log_date = new DateTime($log['log_timestamp']);
+                                                        $log_day = $log_date->format('j');
+                                                        $log_month = getMonthName($log_date->format('n'));
+                                                        $log_year = $log_date->format('Y') + 543;
+                                                        $log_time = $log_date->format('H:i');
+                                                        echo "$log_day $log_month $log_year, $log_time";
+                                                        ?>
+                                                    </span>
+                                                </li>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($student_logs[$queue_id])): ?>
+                                            <li>
+                                                <span class="status-label">สถานะนักเรียน:</span>
+                                                <ul>
+                                                    <?php foreach ($student_logs[$queue_id] as $slog): ?>
+                                                        <li>
+                                                            <?php echo htmlspecialchars($slog['stu_name'] . ' ' . $slog['stu_lastname'] . ' - ' . ($slog['stu_status'] ?: 'ขาด')); ?>
+                                                        </li>
+                                                    <?php endforeach; ?>
+                                                </ul>
+                                            </li>
+                                        <?php endif; ?>
+                                        <?php if (empty($logs[$queue_id]) && empty($student_logs[$queue_id])): ?>
+                                            <li>ยังไม่มีประวัติการทำงาน</li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <nav aria-label="Queue Pagination" class="pagination">
+                    <ul>
+                        <li class="page-item <?php echo $current_page <= 1 ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page - 1; ?>" aria-label="Previous">
+                                <span aria-hidden="true">« ก่อนหน้า</span>
+                            </a>
+                        </li>
+                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                            <li class="page-item <?php echo $i === $current_page ? 'active' : ''; ?>">
+                                <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                            </li>
+                        <?php endfor; ?>
+                        <li class="page-item <?php echo $current_page >= $total_pages ? 'disabled' : ''; ?>">
+                            <a class="page-link" href="?page=<?php echo $current_page + 1; ?>" aria-label="Next">
+                                <span aria-hidden="true">ถัดไป »</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="pagination-info">
+                    หน้า <?php echo $current_page; ?> จาก <?php echo $total_pages; ?> (ทั้งหมด <?php echo $total_queues; ?> คิว)
+                </div>
             </div>
         </div>
     </div>
@@ -524,15 +944,151 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const statusButtons = document.querySelectorAll('.status-btn');
-            const statusSelect = document.getElementById('status-select');
-            const currentStatus = '<?php echo addslashes($current_status); ?>';
+            if (typeof flatpickr === 'undefined') {
+                console.error('Flatpickr is not loaded. Please check if flatpickr.js is included correctly.');
+                return;
+            }
 
-            function updateStatus(status) {
+            const queueDates = <?php echo json_encode(array_unique($queue_dates)); ?>;
+            const allQueues = document.querySelectorAll('.queue-section');
+            const queueList = document.getElementById('queue-list');
+            const pagination = document.querySelector('.pagination');
+            const paginationInfo = document.querySelector('.pagination-info');
+
+            console.log('Queue Dates:', queueDates);
+
+            flatpickr("#date-filter", {
+                locale: "th",
+                dateFormat: "Y-m-d",
+                onDayCreate: function(dObj, dStr, fp, dayElem) {
+                    const date = dayElem.dateObj;
+                    const dateStr = date.getFullYear() + '-' + 
+                                    String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                                    String(date.getDate()).padStart(2, '0');
+                    if (queueDates.includes(dateStr)) {
+                        dayElem.classList.add('has-queue');
+                    }
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    console.log('Selected Date:', dateStr);
+                    filterQueuesByDate(dateStr);
+                },
+                onOpen: function(selectedDates, dateStr, instance) {
+                    instance.redraw();
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                const flatpickrInstance = document.getElementById('date-filter')._flatpickr;
+                if (flatpickrInstance && flatpickrInstance.isOpen) {
+                    flatpickrInstance.redraw();
+                }
+            });
+
+            document.getElementById('clear-filter').addEventListener('click', function() {
+                const flatpickrInstance = document.getElementById('date-filter')._flatpickr;
+                if (flatpickrInstance) {
+                    flatpickrInstance.clear();
+                    filterQueuesByDate('');
+                }
+            });
+
+            function filterQueuesByDate(dateStr) {
+                let visibleQueues = [];
+                allQueues.forEach(queue => {
+                    const queueDate = queue.getAttribute('data-queue-date');
+                    console.log('Comparing:', queueDate, 'with', dateStr);
+                    if (!dateStr || queueDate === dateStr) {
+                        queue.style.display = 'block';
+                        visibleQueues.push(queue);
+                    } else {
+                        queue.style.display = 'none';
+                    }
+                });
+
+                console.log('Visible Queues:', visibleQueues.length);
+
+                if (visibleQueues.length === 0) {
+                    queueList.innerHTML = '<div class="no-data">ไม่มีคิวงานในวันที่เลือก</div>';
+                    pagination.style.display = 'none';
+                    paginationInfo.style.display = 'none';
+                } else {
+                    queueList.innerHTML = '';
+                    visibleQueues.forEach(queue => {
+                        queueList.appendChild(queue);
+                    });
+
+                    const queuesPerPage = 1;
+                    const totalPages = Math.ceil(visibleQueues.length / queuesPerPage);
+                    let currentPage = 1;
+
+                    function updatePagination() {
+                        const startIndex = (currentPage - 1) * queuesPerPage;
+                        const endIndex = startIndex + queuesPerPage;
+                        visibleQueues.forEach((queue, index) => {
+                            queue.style.display = (index >= startIndex && index < endIndex) ? 'block' : 'none';
+                        });
+
+                        pagination.innerHTML = '';
+                        const ul = document.createElement('ul');
+                        ul.style.display = 'flex';
+                        ul.style.flexDirection = 'row';
+                        ul.style.gap = '8px';
+                        ul.style.listStyle = 'none';
+                        ul.style.padding = '0';
+                        ul.style.margin = '0';
+
+                        const prevLi = document.createElement('li');
+                        prevLi.className = `page-item ${currentPage <= 1 ? 'disabled' : ''}`;
+                        prevLi.innerHTML = `<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true">« ก่อนหน้า</span></a>`;
+                        prevLi.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) {
+                                currentPage--;
+                                updatePagination();
+                            }
+                        });
+                        ul.appendChild(prevLi);
+
+                        for (let i = 1; i <= totalPages; i++) {
+                            const li = document.createElement('li');
+                            li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                            li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                            li.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                currentPage = i;
+                                updatePagination();
+                            });
+                            ul.appendChild(li);
+                        }
+
+                        const nextLi = document.createElement('li');
+                        nextLi.className = `page-item ${currentPage >= totalPages ? 'disabled' : ''}`;
+                        nextLi.innerHTML = `<a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">ถัดไป »</span></a>`;
+                        nextLi.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) {
+                                currentPage++;
+                                updatePagination();
+                            }
+                        });
+                        ul.appendChild(nextLi);
+
+                        pagination.appendChild(ul);
+                        paginationInfo.textContent = `หน้า ${currentPage} จาก ${totalPages} (ทั้งหมด ${visibleQueues.length} คิว)`;
+                        pagination.style.display = 'flex';
+                        paginationInfo.style.display = 'block';
+                    }
+
+                    updatePagination();
+                }
+            }
+
+            function updateStatus(queueId, status, currentStatus) {
                 Swal.fire({
                     icon: 'question',
                     title: 'ยืนยันการเปลี่ยนสถานะ',
-                    text: `คุณต้องการเปลี่ยนสถานะรถเป็น "${status}" จาก "${currentStatus}" หรือไม่?`,
+                    text: `คุณต้องการเปลี่ยนสถานะรถของคิว ${queueId} เป็น "${status}" จาก "${currentStatus}" หรือไม่?` + (status === 'ปิดงาน' ? ' คิวนี้จะถูกลบหลังจากปิดงาน' : ''),
                     showCancelButton: true,
                     confirmButtonText: 'ยืนยัน',
                     cancelButtonText: 'ยกเลิก',
@@ -545,7 +1101,7 @@ try {
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',
                             },
-                            body: `status_car=${encodeURIComponent(status)}`
+                            body: `status_car=${encodeURIComponent(status)}&queue_id=${encodeURIComponent(queueId)}`
                         })
                         .then(response => response.json())
                         .then(data => {
@@ -562,7 +1118,7 @@ try {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'ข้อผิดพลาด',
-                                    text: data.error || 'ไม่สามารถอัพเดตสถานะรถได้',
+                                    text: data.error || 'ไม่สามารถอัปเดตสถานะรถได้',
                                     confirmButtonText: 'ตกลง'
                                 });
                             }
@@ -580,125 +1136,127 @@ try {
                 });
             }
 
-            statusButtons.forEach(button => {
+            document.querySelectorAll('.status-btn').forEach(button => {
                 button.addEventListener('click', function () {
+                    const queueId = this.getAttribute('data-queue-id');
                     const status = this.getAttribute('data-status');
-                    updateStatus(status);
+                    const currentStatus = document.querySelector(`.status-select[data-queue-id="${queueId}"]`).value;
+                    updateStatus(queueId, status, currentStatus);
                 });
             });
 
-            statusSelect.addEventListener('change', function () {
-                const status = this.value;
-                if (status !== currentStatus) {
-                    updateStatus(status);
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const queueId = this.getAttribute('data-queue-id');
+                    const status = this.value;
+                    const currentStatus = this.dataset.currentStatus || this.querySelector('option[selected]')?.value;
+                    if (status !== currentStatus) {
+                        updateStatus(queueId, status, currentStatus);
+                    }
+                });
+            });
+
+            function checkAllStudentsFinished(queueId) {
+                const table = document.querySelector(`.table-responsive[data-queue-id="${queueId}"]`);
+                if (!table) return;
+
+                const rows = table.querySelectorAll('tbody tr');
+                if (rows.length === 0) {
+                    console.log(`Queue ${queueId}: No students`);
+                    return;
                 }
+
+                const currentStatus = document.querySelector(`.status-select[data-queue-id="${queueId}"]`)?.value;
+                const notifiedQueues = JSON.parse(localStorage.getItem(`notified_queues_${queueId}`) || '[]');
+
+                const allFinished = Array.from(rows).every(row => {
+                    const status = row.getAttribute('data-stu-status');
+                    return status === 'เลิกเรียนแล้ว';
+                });
+
+                if (allFinished && !notifiedQueues.includes(queueId) && currentStatus !== 'ปิดงาน') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: `ทุกคนเลิกเรียนแล้ว (คิว ${queueId})`,
+                        text: 'ทุกคนในคิวนี้เลิกเรียนแล้ว สามารถเตรียมรถได้',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#28a745'
+                    });
+                    notifiedQueues.push(queueId);
+                    localStorage.setItem(`notified_queues_${queueId}`, JSON.stringify(notifiedQueues));
+                    table.classList.add('notified');
+                }
+            }
+
+            function fetchStudentStatuses(queueId) {
+                const table = document.querySelector(`.table-responsive[data-queue-id="${queueId}"]`);
+                if (!table) return;
+
+                fetch(`get_queue_statuses.php?queue_id=${queueId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const rows = table.querySelectorAll('tbody tr');
+                            rows.forEach((row, index) => {
+                                const status = data.students[index]?.stu_status || '';
+                                row.setAttribute('data-stu-status', status);
+                                const statusCell = row.querySelector('td:last-child span');
+                                let displayStatus = '-';
+                                let statusClass = 'idle';
+                                switch (status) {
+                                    case 'ขึ้นรถแล้ว':
+                                        displayStatus = 'ขึ้นรถแล้ว';
+                                        statusClass = 'boarded';
+                                        break;
+                                    case 'ลา':
+                                        displayStatus = 'ลา';
+                                        statusClass = 'absent';
+                                        break;
+                                    case 'สาย':
+                                        displayStatus = 'สาย';
+                                        statusClass = 'no-show';
+                                        break;
+                                    case 'เลิกเรียนแล้ว':
+                                        displayStatus = 'เลิกเรียนแล้ว';
+                                        statusClass = 'finished';
+                                        break;
+                                    default:
+                                        displayStatus = 'ว่าง';
+                                        statusClass = 'idle';
+                                        break;
+                                }
+                                statusCell.textContent = displayStatus;
+                                statusCell.className = `status-student-${statusClass}`;
+                            });
+                            checkAllStudentsFinished(queueId);
+                        } else {
+                            console.error(`Queue ${queueId}: Error fetching statuses - ${data.error}`);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Queue ${queueId}: Fetch error - ${error.message}`);
+                    });
+            }
+
+            const today = new Date().toDateString();
+            const queueIds = <?php echo json_encode(array_column($queue_with_distance, 'queue_id')); ?>;
+            queueIds.forEach(queueId => {
+                const lastCleared = localStorage.getItem(`last_cleared_${queueId}`);
+                if (lastCleared !== today) {
+                    localStorage.removeItem(`notified_queues_${queueId}`);
+                    localStorage.setItem(`last_cleared_${queueId}`, today);
+                }
+                checkAllStudentsFinished(queueId);
+                fetchStudentStatuses(queueId);
+                setInterval(() => fetchStudentStatuses(queueId), 10000);
             });
 
-            // ฟังก์ชันจัดการการแจ้งเตือนเมื่อทุกคนเลิกเรียน
-            function checkAllStudentsFinished() {
-                const queueTables = document.querySelectorAll('.table-responsive');
-                let notifiedQueues = JSON.parse(localStorage.getItem('notified_queues') || '[]');
-
-                queueTables.forEach(table => {
-                    const queueId = table.getAttribute('data-queue-id');
-                    const rows = table.querySelectorAll('tbody tr');
-                    if (rows.length === 0) {
-                        console.log(`Queue ${queueId}: No students`);
-                        return;
-                    }
-
-                    const allFinished = Array.from(rows).every(row => {
-                        const status = row.getAttribute('data-stu-status');
-                        return status === 'เลิกเรียนแล้ว';
-                    });
-
-                    console.log(`Queue ${queueId}: allFinished=${allFinished}, notified=${notifiedQueues.includes(queueId)}`);
-
-                    // แจ้งเตือนเมื่อทุกคนเลิกเรียนและคิวนี้ยังไม่ถูกแจ้ง
-                    if (allFinished && !notifiedQueues.includes(queueId) && currentStatus !== 'ปิดงาน') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: `ทุกคนเลิกเรียนแล้ว (คิว ${queueId})`,
-                            text: 'ทุกคนในคิวนี้เลิกเรียนแล้ว สามารถเตรียมรถได้',
-                            confirmButtonText: 'ตกลง',
-                            confirmButtonColor: '#28a745'
-                        });
-                        notifiedQueues.push(queueId);
-                        localStorage.setItem('notified_queues', JSON.stringify(notifiedQueues));
-                        table.classList.add('notified');
-                    }
-                });
-            }
-
-            // ฟังก์ชันอัปเดตสถานะนักเรียนแบบเรียลไทม์
-            function fetchStudentStatuses() {
-                const queueTables = document.querySelectorAll('.table-responsive');
-                queueTables.forEach(table => {
-                    const queueId = table.getAttribute('data-queue-id');
-                    fetch(`get_queue_statuses.php?queue_id=${queueId}`)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                const rows = table.querySelectorAll('tbody tr');
-                                rows.forEach((row, index) => {
-                                    const status = data.students[index]?.stu_status || '';
-                                    row.setAttribute('data-stu-status', status);
-                                    const statusCell = row.querySelector('td:last-child span');
-                                    let displayStatus = '-';
-                                    let statusClass = 'idle';
-                                    switch (status) {
-                                        case 'ขึ้นรถแล้ว':
-                                            displayStatus = 'ขึ้นรถแล้ว';
-                                            statusClass = 'boarded';
-                                            break;
-                                        case 'ลา':
-                                            displayStatus = 'ลา';
-                                            statusClass = 'absent';
-                                            break;
-                                        case 'สาย':
-                                            displayStatus = 'สาย';
-                                            statusClass = 'no-show';
-                                            break;
-                                        case 'เลิกเรียนแล้ว':
-                                            displayStatus = 'เลิกเรียนแล้ว';
-                                            statusClass = 'finished';
-                                            break;
-                                        default:
-                                            displayStatus = 'ว่าง';
-                                            statusClass = 'idle';
-                                            break;
-                                    }
-                                    statusCell.textContent = displayStatus;
-                                    statusCell.className = `status-student-${statusClass}`;
-                                });
-                                checkAllStudentsFinished();
-                            } else {
-                                console.error(`Queue ${queueId}: Error fetching statuses - ${data.error}`);
-                            }
-                        })
-                        .catch(error => {
-                            console.error(`Queue ${queueId}: Fetch error - ${error.message}`);
-                        });
-                });
-            }
-
-            // ล้าง notified_queues สำหรับคิวที่เก่ากว่า 1 วัน
-            const today = new Date().toDateString();
-            const lastCleared = localStorage.getItem('last_cleared');
-            if (lastCleared !== today) {
-                localStorage.removeItem('notified_queues');
-                localStorage.setItem('last_cleared', today);
-            }
-
-            // เรียกฟังก์ชันเมื่อโหลดหน้าและทุก 10 วินาที
-            checkAllStudentsFinished();
-            fetchStudentStatuses();
-            setInterval(fetchStudentStatuses, 3000);
+            filterQueuesByDate('');
         });
     </script>
 </body>
