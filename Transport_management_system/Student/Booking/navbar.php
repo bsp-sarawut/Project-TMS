@@ -87,37 +87,43 @@
             background: none;
             border: none;
             color: #eceff1;
-            font-size: 1.1rem;
+            font-size: 1.2rem; /* เพิ่มขนาดตัวอักษรเล็กน้อย */
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px; /* ลด gap เพื่อความกะทัดรัด */
             cursor: pointer;
-            padding: 8px 15px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 8px; /* มุมโค้งมากขึ้น */
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* เพิ่มเงาเล็กน้อย */
         }
         .dropdown-button:hover {
             color: #1c2526;
             background: #ffca28;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* เงาเด่นขึ้นเมื่อ hover */
+            transform: translateY(-2px); /* ขยับขึ้นเล็กน้อย */
         }
         .dropdown-button img {
-            width: 45px;
-            height: 45px;
+            width: 40px; /* ลดขนาดรูปเล็กน้อย */
+            height: 40px;
             border-radius: 50%;
             border: 2px solid #ffca28;
             object-fit: cover;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, border-color 0.3s ease;
         }
         .dropdown-button:hover img {
-            transform: scale(1.1);
+            transform: scale(1.08); /* ขยายน้อยลงเพื่อความนุ่มนวล */
+            border-color: #ffd54f; /* เปลี่ยนสีขอบเมื่อ hover */
         }
         .dropdown-button i {
-            font-size: 1rem;
-            transition: transform 0.3s ease;
+            font-size: 1.2rem; /* ไอคอนใหญ่ขึ้น */
+            color: #ffca28; /* สีเหลืองให้เด่น */
+            transition: transform 0.3s ease, color 0.3s ease;
         }
         .dropdown.show .dropdown-button i {
             transform: rotate(180deg);
+            color: #ffd54f; /* เปลี่ยนสีเมื่อเปิด */
         }
         .dropdown-menu {
             display: none;
@@ -125,14 +131,14 @@
             top: 100%;
             right: 0;
             background: #263238 !important;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-            border-radius: 10px;
-            min-width: 220px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); /* เงาเข้มขึ้น */
+            border-radius: 12px; /* มุมโค้งมากขึ้น */
+            min-width: 240px; /* กว้างขึ้นเล็กน้อย */
             z-index: 1000;
             overflow: hidden;
-            transform: translateY(10px);
+            transform: translateY(12px); /* เริ่มห่างมากขึ้น */
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); /* Animation นุ่มนวล */
         }
         .dropdown.show .dropdown-menu {
             display: block;
@@ -142,24 +148,28 @@
         .menu-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
+            gap: 12px; /* เพิ่ม gap เพื่อความโปร่ง */
+            padding: 14px 22px; /* Padding มากขึ้นเพื่อกดง่าย */
             color: #eceff1 !important;
             text-decoration: none;
-            font-size: 1rem;
+            font-size: 1.05rem; /* ข้อความใหญ่ขึ้น */
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease; /* ช้าลงเพื่อความลื่นไหล */
+            position: relative; /* สำหรับ micro-interaction */
         }
         .menu-item i {
-            font-size: 1.1rem;
+            font-size: 1.2rem; /* ไอคอนใหญ่ขึ้น */
             color: #ffca28;
+            transition: transform 0.3s ease, color 0.3s ease;
         }
         .menu-item:hover {
             background: #ffca28 !important;
             color: #1c2526 !important;
+            transform: translateX(5px); /* ขยับขวาเมื่อ hover */
         }
         .menu-item:hover i {
             color: #1c2526;
+            transform: scale(1.1); /* ไอคอนขยายเมื่อ hover */
         }
         .text-danger {
             color: #ef5350 !important;
@@ -170,9 +180,11 @@
         .text-danger:hover {
             background: #ef5350 !important;
             color: #fff !important;
+            transform: translateX(5px);
         }
         .text-danger:hover i {
             color: #fff;
+            transform: scale(1.1);
         }
         /* Responsive Design */
         @media (max-width: 768px) {
@@ -195,18 +207,21 @@
                 gap: 8px;
             }
             .dropdown-button img {
-                width: 35px;
-                height: 35px;
+                width: 32px; /* เล็กลงสำหรับหน้าจอเล็ก */
+                height: 32px;
+            }
+            .dropdown-button i {
+                font-size: 1rem;
             }
             .dropdown-menu {
                 min-width: 200px;
             }
             .menu-item {
-                font-size: 0.9rem;
-                padding: 10px 15px;
+                font-size: 0.95rem;
+                padding: 12px 18px;
             }
             .menu-item i {
-                font-size: 1rem;
+                font-size: 1.1rem;
             }
         }
         @media (max-width: 576px) {
@@ -220,20 +235,25 @@
             .dropdown-button {
                 font-size: 0.9rem;
                 gap: 6px;
+                padding: 5px 8px;
             }
             .dropdown-button img {
-                width: 30px;
-                height: 30px;
+                width: 28px; /* เล็กลงอีก */
+                height: 28px;
+            }
+            .dropdown-button i {
+                font-size: 0.9rem;
             }
             .dropdown-menu {
                 min-width: 180px;
+                border-radius: 10px;
             }
             .menu-item {
-                font-size: 0.85rem;
-                padding: 8px 12px;
+                font-size: 0.9rem;
+                padding: 10px 15px;
             }
             .menu-item i {
-                font-size: 0.9rem;
+                font-size: 1rem;
             }
         }
     </style>
@@ -246,7 +266,7 @@
             <div class="navbar-links">
                 <?php if (isset($_SESSION['stu_name'])): ?>
 <?php
-    $user_image = !empty($_SESSION['stu_img']) ? "../uploads/" . htmlspecialchars($_SESSION['stu_img']) : "../images/default-avatar.png";
+    $user_image = !empty($_SESSION['stu_img']) ? "../Uploads/" . htmlspecialchars($_SESSION['stu_img']) : "../images/default-avatar.png";
 ?>
                     <div class="dropdown">
                         <button class="dropdown-button">

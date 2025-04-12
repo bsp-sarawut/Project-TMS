@@ -155,7 +155,7 @@ try {
                             <tr>
                                 <th>NO.</th>
                                 <th>Username</th>
-                                <th>Password</th>
+                                <!-- <th>Password</th> -->
                                 <th>Full Name</th>
                                 <th>Phone</th>
                                 <th>Province</th>
@@ -172,7 +172,7 @@ try {
                                 <tr>
                                     <td><?php echo $index++; ?></td>
                                     <td><?php echo htmlspecialchars($driver['driver_user']); ?></td>
-                                    <td><?php echo htmlspecialchars($driver['driver_password']); ?></td>
+                                    <!-- <td><?php echo htmlspecialchars($driver['driver_password']); ?></td> -->
                                     <td><?php echo htmlspecialchars($driver['driver_name'] . " " . $driver['driver_lastname']); ?></td>
                                     <td><?php echo htmlspecialchars($driver['driver_tel']); ?></td>
                                     <td><?php echo htmlspecialchars($driver['PROVINCE_NAME'] ?? 'ไม่ระบุ'); ?></td>

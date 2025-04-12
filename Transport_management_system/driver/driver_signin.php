@@ -1,13 +1,13 @@
 <?php
 session_start();
-require_once("config/condb.php");
+require_once("config/condb.php"); // ปรับพาธให้ถูกต้อง (จาก driver/ ไปที่ config/)
 
 if (isset($_POST["signin"])) {
-    $driver_username = $_POST["driver_username"];
+    $driver_user = $_POST["driver_user"];
     $driver_password = $_POST["driver_password"];
 
-    // ตรวจสอบว่า username และ password ไม่ว่างเปล่า
-    if (empty($driver_username)) {
+    // ตรวจสอบว่า driver_user และ driver_password ไม่ว่างเปล่า
+    if (empty($driver_user)) {
         $_SESSION["error"] = "กรุณากรอกชื่อผู้ใช้";
         header("location:driver_signin.php");
         exit();
@@ -18,15 +18,15 @@ if (isset($_POST["signin"])) {
     } else {
         try {
             // ตรวจสอบในตาราง driver
-            $check_data = $conn->prepare("SELECT * FROM driver WHERE driver_username = :driver_username");
-            $check_data->bindParam(":driver_username", $driver_username, PDO::PARAM_STR);
+            $check_data = $conn->prepare("SELECT * FROM driver WHERE driver_user = :driver_user");
+            $check_data->bindParam(":driver_user", $driver_user, PDO::PARAM_STR);
             $check_data->execute();
             $row = $check_data->fetch(PDO::FETCH_ASSOC);
 
             // ตรวจสอบรหัสผ่านที่แฮช
             if ($row && password_verify($driver_password, $row['driver_password'])) {
                 $_SESSION['driver_id'] = $row['driver_id'];
-                $_SESSION['driver_user'] = $row['driver_username'];
+                $_SESSION['driver_user'] = $row['driver_user'];
                 $_SESSION['success'] = "เข้าสู่ระบบสำเร็จ";
                 header("location:driver.php"); // Redirect to driver dashboard
             } else {
@@ -139,8 +139,8 @@ if (isset($_POST["signin"])) {
 
                 <form action="driver_signin.php" method="POST">
                     <div class="mb-3">
-                        <label for="driver_username" class="form-label">ชื่อผู้ใช้</label>
-                        <input type="text" class="form-control" id="driver_username" name="driver_username" placeholder="กรอกชื่อผู้ใช้" required>
+                        <label for="driver_user" class="form-label">ชื่อผู้ใช้</label>
+                        <input type="text" class="form-control" id="driver_user" name="driver_user" placeholder="กรอกชื่อผู้ใช้" required>
                     </div>
                     <div class="mb-3">
                         <label for="driver_password" class="form-label">รหัสผ่าน</label>

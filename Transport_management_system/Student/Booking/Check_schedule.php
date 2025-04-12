@@ -2,15 +2,13 @@
     require_once 'condb.php';
     include 'navbar.php';
 
-    // ตรวจสอบว่ามี session ของผู้ใช้หรือไม่
     if (!isset($_SESSION['user_name'])) {
         header("Location: login.php");
         exit();
     }
 
-    $stu_username = $_SESSION['user_name']; // ดึงค่าผู้ใช้ที่ล็อกอินอยู่
+    $stu_username = $_SESSION['user_name'];
 
-    // ฟังก์ชันแปลงหมายเลขเดือนเป็นชื่อเดือนภาษาไทย
     function getMonthName($monthNumber) {
         $months = [
             1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
@@ -20,7 +18,6 @@
         return $months[$monthNumber] ?? 'ไม่ทราบเดือน';
     }
 
-    // ขั้นตอนที่ 1: หาคิวที่ผู้ใช้ที่ล็อกอินอยู่มีส่วนเกี่ยวข้อง
     $sql_queues = "SELECT DISTINCT q.queue_id
                    FROM queue q
                    INNER JOIN queue_student qs ON q.queue_id = qs.queue_id
@@ -36,17 +33,18 @@
         if (empty($queue_ids)) {
             $queue_data = [];
         } else {
-            // ขั้นตอนที่ 2: ดึงข้อมูลคิวและนักเรียน
             $queue_ids_str = implode(',', array_map('intval', $queue_ids));
-            $sql = "SELECT q.queue_id, q.location, q.queue_date,
+            $sql = "SELECT q.queue_id, q.location, q.queue_date, q.status_car,
                            p.PROVINCE_NAME,
                            c.car_license,
-                           s.stu_ID, s.stu_name, s.stu_lastname, s.stu_tel, s.stu_faculty, s.stu_status
+                           s.stu_ID, s.stu_name, s.stu_lastname, s.stu_tel, s.stu_faculty, s.stu_status,
+                           d.driver_name, d.driver_lastname, d.driver_tel
                     FROM queue q
                     INNER JOIN queue_student qs ON q.queue_id = qs.queue_id
                     INNER JOIN students s ON qs.student_id = s.stu_ID
                     INNER JOIN province p ON q.province_id = p.PROVINCE_ID
                     INNER JOIN car c ON q.car_id = c.car_id
+                    LEFT JOIN driver d ON c.driver_id = d.driver_id
                     WHERE q.queue_id IN ($queue_ids_str)
                     ORDER BY q.queue_id, s.stu_ID";
 
@@ -54,13 +52,11 @@
             $stmt->execute();
             $queue_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // จัดกลุ่มข้อมูลตาม queue_id
             $grouped_data = [];
             foreach ($queue_data as $row) {
                 $grouped_data[$row['queue_id']][] = $row;
             }
 
-            // ดึงรายการคณะที่ไม่ซ้ำกันสำหรับฟิลเตอร์
             $sql_faculties = "SELECT DISTINCT stu_faculty FROM students WHERE stu_faculty IS NOT NULL AND stu_faculty != '' ORDER BY stu_faculty";
             $stmt_faculties = $conn->prepare($sql_faculties);
             $stmt_faculties->execute();
@@ -81,6 +77,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             background: linear-gradient(135deg, #1c2526 0%, #2c3e50 100%);
@@ -139,10 +136,44 @@
         .info-section p {
             margin-bottom: 10px;
             font-size: 1.1rem;
+            margin-top: 10px;
         }
         .info-section strong {
             color: #ffca28;
             font-weight: 600;
+        }
+        .driver-info {
+            background: #37474f;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        .driver-info p {
+            margin: 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .driver-info i {
+            color: #ffca28;
+            font-size: 1.1rem;
+        }
+        .driver-info a {
+            color: #17a2b8;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .driver-info a:hover {
+            color: #ffca28;
+        }
+        .driver-info .no-data {
+            color: #b0bec5;
+            font-style: italic;
         }
         .table {
             background: #2c3e50;
@@ -166,21 +197,11 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        .table th:nth-child(1), .table td:nth-child(1) { /* ชื่อ */
-            width: 25%;
-        }
-        .table th:nth-child(2), .table td:nth-child(2) { /* เบอร์โทร */
-            width: 20%;
-        }
-        .table th:nth-child(3), .table td:nth-child(3) { /* คณะ */
-            width: 20%;
-        }
-        .table th:nth-child(4), .table td:nth-child(4) { /* สถานะ */
-            width: 20%;
-        }
-        .table th:nth-child(5), .table td:nth-child(5) { /* เพิ่มเติม */
-            width: 15%;
-        }
+        .table th:nth-child(1), .table td:nth-child(1) { width: 25%; }
+        .table th:nth-child(2), .table td:nth-child(2) { width: 20%; }
+        .table th:nth-child(3), .table td:nth-child(3) { width: 20%; }
+        .table th:nth-child(4), .table td:nth-child(4) { width: 20%; }
+        .table th:nth-child(5), .table td:nth-child(5) { width: 15%; }
         .table tbody tr {
             border-bottom: 1px solid #37474f;
             transition: background 0.3s ease;
@@ -201,6 +222,14 @@
             outline: none;
             border-color: #17a2b8;
         }
+        .status-car-idle { background-color: #007bff; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-going { background-color: #17a2b8; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-arrived { background-color: #28a745; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-departed { background-color: #ffc107; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-destination { background-color: #28a745; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-returning { background-color: #6c757d; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-closed { background-color: #343a40; color: #fff; padding: 5px 10px; border-radius: 5px; }
+        .status-car-emergency { background-color: #dc3545; color: #fff; padding: 5px 10px; border-radius: 5px; }
         .text-muted {
             color: #b0bec5 !important;
         }
@@ -216,7 +245,6 @@
         .btn-details:hover {
             color: #138496;
         }
-        /* Modal Styles */
         .modal-content {
             background: #263238;
             color: #eceff1;
@@ -244,7 +272,6 @@
         .btn-close {
             filter: invert(1) grayscale(100%) brightness(200%);
         }
-        /* Profile Image Styles */
         .profile-image {
             display: block;
             width: 150px;
@@ -259,7 +286,6 @@
             color: #b0bec5;
             margin-bottom: 15px;
         }
-        /* Search Button Styles */
         .search-toggle {
             background: #ffca28;
             color: #1c2526;
@@ -278,13 +304,12 @@
         .search-toggle:hover {
             background: #ffb300;
         }
-        /* Filter Styles */
         .filter-section {
             background: #2c3e50;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
-            display: none; /* ซ่อนเริ่มต้น */
+            display: none;
             flex-wrap: wrap;
             gap: 15px;
             align-items: center;
@@ -324,7 +349,6 @@
         .filter-section .btn-reset:hover {
             background: #c82333;
         }
-        /* Responsive Design for Mobile */
         @media (max-width: 768px) {
             .container {
                 padding-top: 10px;
@@ -343,6 +367,17 @@
             .info-section p {
                 font-size: 1rem;
             }
+            .driver-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            .driver-info p {
+                font-size: 0.95rem;
+            }
+            .driver-info i {
+                font-size: 1rem;
+            }
             .table th, .table td {
                 font-size: 0.85rem;
                 padding: 8px;
@@ -350,16 +385,16 @@
             .table th:nth-child(2), .table td:nth-child(2) {
                 display: none;
             }
-            .table th:nth-child(1), .table td:nth-child(1) { /* ชื่อ */
+            .table th:nth-child(1), .table td:nth-child(1) {
                 width: 35%;
             }
-            .table th:nth-child(3), .table td:nth-child(3) { /* คณะ */
+            .table th:nth-child(3), .table td:nth-child(3) {
                 width: 25%;
             }
-            .table th:nth-child(4), .table td:nth-child(4) { /* สถานะ */
+            .table th:nth-child(4), .table td:nth-child(4) {
                 width: 25%;
             }
-            .table th:nth-child(5), .table td:nth-child(5) { /* เพิ่มเติม */
+            .table th:nth-child(5), .table td:nth-child(5) {
                 width: 15%;
             }
             .status-select {
@@ -407,6 +442,12 @@
             .info-section p {
                 font-size: 0.9rem;
             }
+            .driver-info p {
+                font-size: 0.9rem;
+            }
+            .driver-info i {
+                font-size: 0.9rem;
+            }
             .table th, .table td {
                 font-size: 0.75rem;
                 padding: 6px;
@@ -436,13 +477,11 @@
 <div class="container">
     <h2>ตรวจสอบตารางรถ</h2>
 
-    <!-- ปุ่มค้นหา -->
     <?php if (!empty($grouped_data)): ?>
         <button class="search-toggle" onclick="toggleFilterSection()">
             <i class="fas fa-search"></i> ค้นหา
         </button>
 
-        <!-- ฟิลเตอร์การค้นหา -->
         <div class="filter-section" id="filter-section">
             <div>
                 <label for="filter-date">วันที่:</label>
@@ -471,6 +510,7 @@
                     <option value="ขึ้นรถแล้ว">ขึ้นรถแล้ว</option>
                     <option value="ลา">ลา</option>
                     <option value="สาย">สาย</option>
+                    <option value="เลิกเรียนแล้ว">เลิกเรียนแล้ว</option>
                 </select>
             </div>
             <button class="btn-reset" onclick="resetFilters()">รีเซ็ต</button>
@@ -479,15 +519,13 @@
 
     <?php if (!empty($grouped_data)): ?>
         <?php foreach ($grouped_data as $queue_id => $rows): ?>
-            <?php $header_data = $rows[0]; // ใช้ข้อมูลแถวแรกของคิวนี้เพื่อแสดงหัวข้อ ?>
-            <!-- การ์ดของแต่ละคิว -->
+            <?php $header_data = $rows[0]; ?>
             <div class="queue-card" data-date="<?php echo htmlspecialchars($header_data['queue_date'] ?? ''); ?>">
                 <div class="queue-header">
                     <i class="fas fa-bus"></i>
                     <h4>คิวรถ ID: <?php echo htmlspecialchars($queue_id); ?></h4>
                 </div>
-                <div class="info-section">
-                    <p><strong>ตารางการเดินทาง:</strong> <?php echo htmlspecialchars($header_data['location']); ?></p>
+                <div class="info-section" data-queue-id="<?php echo htmlspecialchars($queue_id); ?>">
                     <p><strong>ประจำวันที่:</strong> 
                         <?php 
                             if ($header_data['queue_date']) {
@@ -501,11 +539,40 @@
                             }
                         ?>
                     </p>
-                    <p><strong>รถตู้ทะเบียน:</strong> <?php echo htmlspecialchars($header_data['car_license'] ?? 'ไม่ระบุ'); ?></p>
+                    <p><strong>ตารางการเดินทาง:</strong> <?php echo htmlspecialchars($header_data['location']); ?></p>
                     <p><strong>จังหวัด:</strong> <?php echo htmlspecialchars($header_data['PROVINCE_NAME']); ?></p>
+                    <div class="driver-info">
+                        <p><strong>รถตู้ทะเบียน:</strong> <?php echo htmlspecialchars($header_data['car_license'] ?? 'ไม่ระบุ'); ?></p>
+                        <p>
+                            <i class="fas fa-user"></i>
+                            <strong>คนขับ:</strong> 
+                            <?php 
+                                if (!empty($header_data['driver_name']) && !empty($header_data['driver_lastname'])) {
+                                    echo htmlspecialchars($header_data['driver_name'] . ' ' . $header_data['driver_lastname']);
+                                } else {
+                                    echo '<span class="no-data">ไม่ระบุ</span>';
+                                }
+                            ?>
+                        </p>
+                        <p>
+                            <i class="fas fa-phone"></i>
+                            <strong>เบอร์โทร:</strong> 
+                            <?php 
+                                if (!empty($header_data['driver_tel'])) {
+                                    echo '<a href="tel:' . htmlspecialchars($header_data['driver_tel']) . '">' . htmlspecialchars($header_data['driver_tel']) . '</a>';
+                                } else {
+                                    echo '<span class="no-data">ไม่ระบุ</span>';
+                                }
+                            ?>
+                        </p>
+                    </div>
+                    <p><strong>สถานะรถ:</strong> 
+                        <span class="status-car" data-status="<?php echo htmlspecialchars($header_data['status_car'] ?: 'ว่าง'); ?>">
+                            <?php echo htmlspecialchars($header_data['status_car'] ?: 'ว่าง'); ?>
+                        </span>
+                    </p>
                 </div>
 
-                <!-- ตารางของผู้โดยสารในคิวนี้ -->
                 <table class="table">
                     <thead>
                         <tr>
@@ -532,11 +599,12 @@
                                     <?php echo htmlspecialchars($row['stu_faculty'] ?? 'ไม่ระบุ'); ?>
                                 </td>
                                 <td>
-                                    <select class="status-select" data-stu-id="<?php echo htmlspecialchars($row['stu_ID']); ?>">
+                                    <select class="status-select" data-stud-id="<?php echo htmlspecialchars($row['stu_ID']); ?>">
                                         <option value="" <?php echo $row['stu_status'] == '' ? 'selected' : ''; ?>>-</option>
                                         <option value="ขึ้นรถแล้ว" <?php echo $row['stu_status'] == 'ขึ้นรถแล้ว' ? 'selected' : ''; ?>>ขึ้นรถแล้ว</option>
                                         <option value="ลา" <?php echo $row['stu_status'] == 'ลา' ? 'selected' : ''; ?>>ลา</option>
                                         <option value="สาย" <?php echo $row['stu_status'] == 'สาย' ? 'selected' : ''; ?>>สาย</option>
+                                        <option value="เลิกเรียนแล้ว" <?php echo $row['stu_status'] == 'เลิกเรียนแล้ว' ? 'selected' : ''; ?>>เลิกเรียนแล้ว</option>
                                     </select>
                                 </td>
                                 <td>
@@ -555,7 +623,6 @@
     <?php endif; ?>
 </div>
 
-<!-- Modal -->
 <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -584,7 +651,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// JavaScript สำหรับจัดการ Modal, ฟิลเตอร์, และ AJAX
 document.addEventListener('DOMContentLoaded', function () {
     const studentModal = document.getElementById('studentModal');
     studentModal.addEventListener('show.bs.modal', function (event) {
@@ -595,23 +661,24 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.error) {
-                    alert('เกิดข้อผิดพลาด: ' + data.error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: data.error,
+                        confirmButtonText: 'ตกลง'
+                    });
                     return;
                 }
-
-                // แสดงรูปภาพ
                 const profileImage = document.getElementById('modal-stu-img');
                 const noImage = document.getElementById('modal-no-image');
                 if (data.stu_img && data.stu_img !== '') {
-                    profileImage.src = '../uploads/' + data.stu_img;
+                    profileImage.src = '../Uploads/' + data.stu_img;
                     profileImage.style.display = 'block';
                     noImage.style.display = 'none';
                 } else {
                     profileImage.style.display = 'none';
                     noImage.style.display = 'block';
                 }
-
-                // แสดงข้อมูลอื่นๆ
                 document.getElementById('modal-stu-license').textContent = data.stu_license;
                 document.getElementById('modal-stu-name').textContent = data.stu_name + ' ' + data.stu_lastname;
                 document.getElementById('modal-stu-tel').textContent = data.stu_tel || 'ไม่ระบุ';
@@ -621,11 +688,15 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('เกิดข้อผิดพลาดในการดึงข้อมูล');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถดึงข้อมูลได้',
+                    confirmButtonText: 'ตกลง'
+                });
             });
     });
 
-    // ซ่อน/แสดงชื่อ-นามสกุลตามขนาดหน้าจอ
     function toggleNameDisplay() {
         const fullNames = document.querySelectorAll('.name-full');
         const firstNames = document.querySelectorAll('.name-first');
@@ -641,11 +712,23 @@ document.addEventListener('DOMContentLoaded', function () {
     toggleNameDisplay();
     window.addEventListener('resize', toggleNameDisplay);
 
-    // จัดการการเปลี่ยนสถานะนักเรียน
+    const allowedStatuses = ['', 'ขึ้นรถแล้ว', 'ลา', 'สาย', 'เลิกเรียนแล้ว'];
+
     document.querySelectorAll('.status-select').forEach(select => {
         select.addEventListener('change', function () {
-            const stuId = this.getAttribute('data-stu-id');
+            const stuId = this.getAttribute('data-stud-id');
             const newStatus = this.value;
+
+            if (!allowedStatuses.includes(newStatus)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'สถานะไม่ถูกต้อง',
+                    text: 'กรุณาเลือกสถานะที่อนุญาต',
+                    confirmButtonText: 'ตกลง'
+                });
+                this.value = this.getAttribute('data-original-status') || '';
+                return;
+            }
 
             fetch('update_student_status.php', {
                 method: 'POST',
@@ -657,32 +740,45 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(data.message);
-                    // อัปเดต data-status ในแถว
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
                     const row = this.closest('tr');
                     row.setAttribute('data-status', newStatus);
+                    this.setAttribute('data-original-status', newStatus);
                 } else {
-                    alert('เกิดข้อผิดพลาด: ' + data.error);
-                    this.value = this.getAttribute('data-original-status');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: data.error || 'ไม่สามารถอัปเดตสถานะได้',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    this.value = this.getAttribute('data-original-status') || '';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-                this.value = this.getAttribute('data-original-status');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้',
+                    confirmButtonText: 'ตกลง'
+                });
+                this.value = this.getAttribute('data-original-status') || '';
             });
-
-            this.setAttribute('data-original-status', newStatus);
         });
+
+        select.setAttribute('data-original-status', select.value);
     });
 
-    // ฟังก์ชันสำหรับแสดง/ซ่อนส่วนฟิลเตอร์
     window.toggleFilterSection = function() {
         const filterSection = document.getElementById('filter-section');
         filterSection.classList.toggle('active');
     };
 
-    // ฟังก์ชันสำหรับกรองตาราง
     function filterTable() {
         const filterDate = document.getElementById('filter-date').value;
         const searchName = document.getElementById('search-name').value.toLowerCase();
@@ -697,7 +793,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (matchesDate) {
                 card.style.display = '';
-                // กรองแถวในตารางของการ์ดนี้
                 const rows = card.querySelectorAll('.table tbody tr');
                 rows.forEach(row => {
                     const name = row.getAttribute('data-name').toLowerCase();
@@ -715,7 +810,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 });
 
-                // ซ่อนการ์ดถ้าไม่มีแถวที่แสดง
                 const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
                 if (visibleRows.length === 0) {
                     card.style.display = 'none';
@@ -726,13 +820,11 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // เพิ่ม Event Listener สำหรับฟิลเตอร์
     document.getElementById('filter-date')?.addEventListener('change', filterTable);
     document.getElementById('search-name')?.addEventListener('input', filterTable);
     document.getElementById('filter-faculty')?.addEventListener('change', filterTable);
     document.getElementById('filter-status')?.addEventListener('change', filterTable);
 
-    // ฟังก์ชันรีเซ็ตฟิลเตอร์
     window.resetFilters = function() {
         document.getElementById('filter-date').value = '';
         document.getElementById('search-name').value = '';
@@ -740,6 +832,51 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('filter-status').value = '';
         filterTable();
     };
+
+    function updateCarStatus() {
+        const queueCards = document.querySelectorAll('.queue-card');
+        queueCards.forEach(card => {
+            const queueId = card.querySelector('.info-section').getAttribute('data-queue-id');
+            fetch(`check_queue_status.php?queue_id=${queueId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const statusSpan = card.querySelector('.status-car');
+                        const currentStatus = statusSpan.getAttribute('data-status');
+                        if (data.status_car !== currentStatus) {
+                            statusSpan.textContent = data.status_car || 'ว่าง';
+                            statusSpan.setAttribute('data-status', data.status_car || 'ว่าง');
+                            statusSpan.className = 'status-car';
+                            switch (data.status_car) {
+                                case 'ว่าง': statusSpan.classList.add('status-car-idle'); break;
+                                case 'กำลังไป': statusSpan.classList.add('status-car-going'); break;
+                                case 'ถึงจุดรับ': statusSpan.classList.add('status-car-arrived'); break;
+                                case 'ออกเดินทาง': statusSpan.classList.add('status-car-departed'); break;
+                                case 'ถึงที่หมาย': statusSpan.classList.add('status-car-destination'); break;
+                                case 'กำลังกลับ': statusSpan.classList.add('status-car-returning'); break;
+                                case 'ปิดงาน': statusSpan.classList.add('status-car-closed'); break;
+                                case 'ฉุกเฉิน': statusSpan.classList.add('status-car-emergency'); break;
+                                default: statusSpan.classList.add('status-car-idle');
+                            }
+                            Swal.fire({
+                                icon: data.status_car === 'ถึงจุดรับ' ? 'success' : 'info',
+                                title: `คิวรถ ID: ${queueId}`,
+                                text: `สถานะรถอัพเดทเป็น: ${data.status_car || 'ว่าง'}`,
+                                confirmButtonText: 'ตกลง',
+                                timer: 3000,
+                                timerProgressBar: true
+                            });
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating car status:', error);
+                });
+        });
+    }
+
+    updateCarStatus();
+    setInterval(updateCarStatus, 10000);
 });
 </script>
 </body>
