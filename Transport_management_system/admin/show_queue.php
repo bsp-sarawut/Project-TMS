@@ -192,6 +192,12 @@ function getAvailableStudents($conn, $queue_id) {
         <div class="card mb-4">
             <h3 class="mb-3">ตัวกรองข้อมูล</h3>
             <form method="GET" id="filterForm">
+            <div class="col-md-12 col-12">
+                        <label for="search" class="form-label">ค้นหา</label>
+                        <input type="text" id="search" name="search" class="form-control" 
+                               value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
+                               placeholder="ค้นหารถหรือชื่อนักเรียน"><br>
+                    </div>
                 <div class="row g-3">
                     <div class="col-md-3 col-12">
                         <label for="queue_date" class="form-label">วันที่</label>
@@ -244,12 +250,7 @@ function getAvailableStudents($conn, $queue_id) {
                             <?php endif; ?>
                         </select>
                     </div>
-                    <div class="col-md-3 col-12">
-                        <label for="search" class="form-label">ค้นหา</label>
-                        <input type="text" id="search" name="search" class="form-control" 
-                               value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
-                               placeholder="ค้นหารถหรือชื่อนักเรียน">
-                    </div>
+                    
                 </div>
                 <div class="text-end mt-3">
                     <button type="submit" class="btn btn-primary me-2">กรองข้อมูล</button>

@@ -253,6 +253,10 @@ try {
                 <h3 class="mb-3">ค้นหาเส้นทาง</h3>
                 <form method="POST" action="" id="searchForm">
                     <div class="row g-3">
+                    <div class="col-md-4">
+                            <label for="search" class="form-label">ค้นหาเส้นทาง</label>
+                            <input type="text" name="search" id="search" class="form-control" placeholder="ค้นหาเส้นทาง" value="<?php echo isset($search) ? $search : ''; ?>">
+                        </div>
                         <div class="col-md-4">
                             <label for="province_filter" class="form-label">จังหวัด</label>
                             <select name="province_filter" id="province_filter" class="form-select" onchange="fetchAmphurs(this.value, 'filter')">
@@ -270,10 +274,7 @@ try {
                                 <option value="">เลือกอำเภอ</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label for="search" class="form-label">ค้นหาเส้นทาง</label>
-                            <input type="text" name="search" id="search" class="form-control" placeholder="ค้นหาเส้นทาง" value="<?php echo isset($search) ? $search : ''; ?>">
-                        </div>
+                        
                     </div>
                     <div class="btn-group d-flex justify-content-start mt-3">
                         <button type="submit" class="btn btn-primary me-2">ค้นหา</button>

@@ -50,18 +50,39 @@ $pending_confirmations = fetchSingleResult(
     "SELECT COUNT(*) AS pending_confirmations FROM transport_registration WHERE payment_status = 'Pending Confirmation'"
 )['pending_confirmations'] ?? 0;
 
-// ข้อมูลสำหรับกราฟแนวโน้มการลงทะเบียน 7 วัน
-$registration_data = [];
-$labels = [];
-for ($i = 6; $i >= 0; $i--) {
-    $date = date('Y-m-d', strtotime("-$i days"));
-    $count = fetchSingleResult(
-        $conn,
-        "SELECT COUNT(*) AS count FROM transport_registration WHERE DATE(created_at) = :date",
-        ['date' => $date]
-    )['count'] ?? 0;
-    $registration_data[] = $count;
-    $labels[] = date('d M', strtotime($date));
+// ดึงข้อมูล 5 อันดับจังหวัดที่มีการลงทะเบียนมากที่สุด
+try {
+    $stmt_top_provinces = $conn->prepare(
+        "SELECT p.PROVINCE_NAME, COUNT(*) as registration_count, 
+                GROUP_CONCAT(a.AMPHUR_NAME) as amphurs, 
+                GROUP_CONCAT(r.location) as locations
+         FROM transport_registration tr
+         JOIN routes r ON tr.route_id = r.route_ID
+         JOIN province p ON r.province = p.PROVINCE_ID
+         JOIN amphur a ON r.amphur = a.AMPHUR_ID
+         GROUP BY p.PROVINCE_NAME
+         ORDER BY registration_count DESC
+         LIMIT 5"
+    );
+    $stmt_top_provinces->execute();
+    $top_provinces = $stmt_top_provinces->fetchAll(PDO::FETCH_ASSOC);
+
+    // เตรียมข้อมูลสำหรับชาร์ต
+    $province_labels = [];
+    $registration_counts = [];
+    $amphur_data = [];
+    $location_data = [];
+
+    foreach ($top_provinces as $province) {
+        $province_labels[] = $province['PROVINCE_NAME'];
+        $registration_counts[] = $province['registration_count'];
+        $amphur_data[] = explode(',', $province['amphurs']);
+        $location_data[] = explode(',', $province['locations']);
+    }
+} catch (PDOException $e) {
+    $_SESSION['error'] = "เกิดข้อผิดพลาด: " . $e->getMessage();
+    header("location: index.php");
+    exit();
 }
 
 // ดึงคิวล่าสุด 5 รายการ
@@ -94,7 +115,7 @@ try {
          LIMIT 5"
     );
     $stmt_registrations->execute();
-    $recent_registrations = $stmt_registrations->fetchAll(PDO::FETCH_ASSOC);
+    $recent_registrations = $stmt_registrations->fetchAll(PDO::FETCH_ASSOC); // แก้ไขตรงนี้
 } catch (PDOException $e) {
     $_SESSION['error'] = "เกิดข้อผิดพลาด: " . $e->getMessage();
     header("location: index.php");
@@ -109,13 +130,13 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - ระบบจัดการการขนส่ง</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Kanit', sans-serif;
             background-color: #f1f3f4;
             color: #212529;
             margin: 0;
@@ -150,10 +171,17 @@ try {
             border: none;
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: box-shadow 0.3s ease;
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            animation: fadeIn 0.5s ease-in-out;
+            cursor: pointer;
         }
         .card:hover {
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-5px);
+        }
+        @keyframes fadeIn {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
         .card-header {
             background: #1a73e8;
@@ -197,14 +225,17 @@ try {
         .chart-container {
             background: #ffffff;
             border-radius: 12px;
-            padding: 20px;
+            padding: 30px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.5s ease-in-out;
+            height: 350px;
         }
         .table-container {
             background: #ffffff;
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.5s ease-in-out;
         }
         .table {
             background: #ffffff;
@@ -248,6 +279,7 @@ try {
             align-items: center;
             gap: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            animation: fadeIn 0.5s ease-in-out;
         }
         .alert-card i {
             font-size: 1.5rem;
@@ -266,20 +298,92 @@ try {
         .alert-card a:hover {
             color: #1557b0;
         }
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+        .refresh-section {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .refresh-btn {
+            background: #1a73e8;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .refresh-btn:hover {
+            background: #1557b0;
+        }
+        .timer {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        @media (max-width: 768px) {
+            .content {
+                margin-left: 60px;
+                padding: 15px;
+            }
+            .open-btn {
+                left: 70px;
+            }
+            .card-body p {
+                font-size: 1.2rem;
+            }
+            .table th, .table td {
+                font-size: 0.9rem;
+                padding: 8px;
+            }
+            .chart-container {
+                height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Sidebar -->
     <?php include('sidebar.php'); ?>
 
+    <!-- Toast Notification -->
+    <div class="toast-container">
+        <?php if ($pending_confirmations > 0): ?>
+            <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
+                <div class="toast-header">
+                    <i class="fas fa-exclamation-circle me-2" style="color: #dc3545;"></i>
+                    <strong class="me-auto">การแจ้งเตือน</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน 
+                    <a href="pending_registrations.php">ดูรายละเอียด</a>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
     <!-- Content -->
     <div class="content" id="content">
         <div class="container mt-4">
+            <!-- Refresh Section -->
+            <div class="refresh-section">
+                <span class="timer" id="refresh-timer">รีเฟรชใน 60 วินาที</span>
+                <button class="refresh-btn" id="refresh-btn"><i class="fas fa-sync-alt"></i> รีเฟรชทันที</button>
+            </div>
+
             <!-- System Overview -->
             <div class="section-title">ภาพรวมระบบ</div>
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <div class="card">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดนักเรียนทั้งหมด" onclick="window.location.href='students.php'">
                         <div class="card-header">
                             <i class="fas fa-users"></i> นักเรียนทั้งหมด
                         </div>
@@ -287,13 +391,13 @@ try {
                             <i class="fas fa-users"></i>
                             <div>
                                 <h5>นักเรียนทั้งหมด</h5>
-                                <p><?php echo $total_students; ?></p>
+                                <p id="total-students"><?php echo $total_students; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูนักเรียนที่กำลังใช้งาน" onclick="window.location.href='active_students.php'">
                         <div class="card-header">
                             <i class="fas fa-user-check"></i> นักเรียนที่ Active
                         </div>
@@ -301,13 +405,13 @@ try {
                             <i class="fas fa-user-check"></i>
                             <div>
                                 <h5>นักเรียนที่ Active</h5>
-                                <p><?php echo $active_students; ?></p>
+                                <p id="active-students"><?php echo $active_students; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูการลงทะเบียนวันนี้" onclick="window.location.href='registrations_today.php'">
                         <div class="card-header">
                             <i class="fas fa-ticket-alt"></i> การลงทะเบียนวันนี้
                         </div>
@@ -315,7 +419,7 @@ try {
                             <i class="fas fa-ticket-alt"></i>
                             <div>
                                 <h5>การลงทะเบียนวันนี้</h5>
-                                <p><?php echo $registrations_today; ?></p>
+                                <p id="registrations-today"><?php echo $registrations_today; ?></p>
                             </div>
                         </div>
                     </div>
@@ -325,8 +429,8 @@ try {
             <!-- Car and Queue Overview -->
             <div class="section-title">ภาพรวมรถและคิว</div>
             <div class="row">
-                <div class="col-lg-3 mb-4">
-                    <div class="card">
+                <div class="col-lg-4 mb-4">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดรถทั้งหมด" onclick="window.location.href='cars.php'">
                         <div class="card-header">
                             <i class="fas fa-bus"></i> รถทั้งหมด
                         </div>
@@ -334,13 +438,13 @@ try {
                             <i class="fas fa-bus"></i>
                             <div>
                                 <h5>รถทั้งหมด</h5>
-                                <p><?php echo $total_cars; ?></p>
+                                <p id="total-cars"><?php echo $total_cars; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 mb-4">
-                    <div class="card">
+                <div class="col-lg-4 mb-4">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรถที่พร้อมใช้งาน" onclick="window.location.href='available_cars.php'">
                         <div class="card-header">
                             <i class="fas fa-check-circle"></i> รถที่พร้อมใช้งาน
                         </div>
@@ -348,189 +452,174 @@ try {
                             <i class="fas fa-check-circle"></i>
                             <div>
                                 <h5>รถที่พร้อมใช้งาน</h5>
-                                <p><?php echo $available_cars; ?></p>
+                                <p id="available-cars"><?php echo $available_cars; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 mb-4">
-                    <div class="card">
+                <div class="col-lg-4 mb-4">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูคิวที่รอดำเนินการ" onclick="window.location.href='pending_queues.php'">
                         <div class="card-header">
-                            <i class="fas fa-hourglass-half"></i> คิวที่รอดำเนินการ
+                            <i class="fas fa-clock"></i> คิวที่รอดำเนินการ
                         </div>
                         <div class="card-body">
-                            <i class="fas fa-hourglass-half"></i>
+                            <i class="fas fa-clock"></i>
                             <div>
                                 <h5>คิวที่รอดำเนินการ</h5>
-                                <p><?php echo $pending_queues; ?></p>
+                                <p id="pending-queues"><?php echo $pending_queues; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3 mb-4">
-                    <div class="chart-container">
-                        <canvas id="registrationChart" height="150"></canvas>
-                    </div>
-                </div>
             </div>
 
-            <!-- Alerts -->
-            <div class="section-title">การแจ้งเตือน</div>
-            <div class="row">
-                <div class="col-12">
-                    <?php if ($pending_confirmations > 0): ?>
-                        <div class="alert-card">
-                            <i class="fas fa-exclamation-circle"></i>
-                            <p>คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน <a href="pending_registrations.php">ดูรายละเอียด</a></p>
-                        </div>
-                    <?php else: ?>
-                        <div class="alert-card" style="border-left-color: #28a745;">
-                            <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                            <p>ไม่มีรายการที่ต้องดำเนินการในขณะนี้</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
+            <!-- Top Provinces Chart -->
+            <div class="section-title">5 อันดับจังหวัดที่มีการลงทะเบียนมากที่สุด</div>
+            <div class="chart-container">
+                <canvas id="topProvincesChart"></canvas>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="row">
-                <!-- Recent Queues -->
-                <div class="col-lg-6 mb-4">
-                    <div class="table-container">
-                        <div class="section-title">คิวล่าสุด</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>รหัสคิว</th>
-                                    <th>สถานที่</th>
-                                    <th>จังหวัด</th>
-                                    <th>อำเภอ</th>
-                                    <th>รถ</th>
-                                    <th>สถานะ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($recent_queues as $queue): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($queue['queue_id']); ?></td>
-                                        <td><?php echo htmlspecialchars($queue['location']); ?></td>
-                                        <td><?php echo htmlspecialchars($queue['PROVINCE_NAME']); ?></td>
-                                        <td><?php echo htmlspecialchars($queue['AMPHUR_NAME']); ?></td>
-                                        <td><?php echo htmlspecialchars($queue['car_license']); ?></td>
-                                        <td>
-                                            <span class="status-car-<?php echo htmlspecialchars($queue['status_car']); ?>">
-                                                <?php echo htmlspecialchars($queue['status_car']); ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <!-- Recent Queues -->
+            <div class="section-title">คิวล่าสุด</div>
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>สถานที่</th>
+                            <th>จังหวัด</th>
+                            <th>อำเภอ</th>
+                            <th>ป้ายทะเบียนรถ</th>
+                            <th>วันที่</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($recent_queues as $index => $queue): ?>
+                            <tr>
+                                <td><?php echo $index + 1; ?></td>
+                                <td><?php echo htmlspecialchars($queue['location']); ?></td>
+                                <td><?php echo htmlspecialchars($queue['PROVINCE_NAME']); ?></td>
+                                <td><?php echo htmlspecialchars($queue['AMPHUR_NAME']); ?></td>
+                                <td><?php echo htmlspecialchars($queue['car_license']); ?></td>
+                                <td><?php echo htmlspecialchars($queue['queue_date']); ?></td>
+                                <td class="status-car-<?php echo htmlspecialchars($queue['status_car']); ?>">
+                                    <?php echo htmlspecialchars($queue['status_car']); ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
 
-                <!-- Recent Registrations -->
-                <div class="col-lg-6 mb-4">
-                    <div class="table-container">
-                        <div class="section-title">การลงทะเบียนล่าสุด</div>
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>รหัส</th>
-                                    <th>นักเรียน</th>
-                                    <th>สถานที่</th>
-                                    <th>วันที่ลงทะเบียน</th>
-                                    <th>สถานะ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($recent_registrations as $reg): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($reg['id']); ?></td>
-                                        <td><?php echo htmlspecialchars($reg['stu_name'] . ' ' . $reg['stu_lastname']); ?></td>
-                                        <td><?php echo htmlspecialchars($reg['location']); ?></td>
-                                        <td><?php echo date('d M Y H:i', strtotime($reg['created_at'])); ?></td>
-                                        <td>
-                                            <span class="status-<?php echo $reg['payment_status'] == 'Paid' ? 'paid' : 'pending'; ?>">
-                                                <?php echo htmlspecialchars($reg['payment_status']); ?>
-                                            </span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <!-- Recent Registrations -->
+            <div class="section-title">การลงทะเบียนล่าสุด</div>
+            <div class="table-container">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>สถานที่</th>
+                            <th>วันที่ลงทะเบียน</th>
+                            <th>สถานะการชำระเงิน</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($recent_registrations as $index => $registration): ?>
+                            <tr>
+                                <td><?php echo $index + 1; ?></td>
+                                <td><?php echo htmlspecialchars($registration['stu_name'] . ' ' . $registration['stu_lastname']); ?></td>
+                                <td><?php echo htmlspecialchars($registration['location']); ?></td>
+                                <td><?php echo htmlspecialchars($registration['created_at']); ?></td>
+                                <td class="status-<?php echo strtolower($registration['payment_status'] == 'Pending Confirmation' ? 'pending' : 'paid'); ?>">
+                                    <?php echo htmlspecialchars($registration['payment_status']); ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- Open Sidebar Button -->
-    <button class="open-btn" id="open-btn">☰</button>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Sidebar Toggle Functionality
-        const openBtn = document.getElementById('open-btn');
-        const content = document.getElementById('content');
-        let isCollapsed = false;
-
-        openBtn.addEventListener('click', () => {
-            isCollapsed = !isCollapsed;
-            if (isCollapsed) {
-                content.style.marginLeft = '60px';
-                openBtn.style.left = '70px';
-                document.querySelector('.sidebar').classList.add('collapsed');
-            } else {
-                content.style.marginLeft = '250px';
-                openBtn.style.left = '20px';
-                document.querySelector('.sidebar').classList.remove('collapsed');
-            }
-        });
-
-        // Registration Trend Chart
-        const registrationChartCtx = document.getElementById('registrationChart').getContext('2d');
-        new Chart(registrationChartCtx, {
-            type: 'line',
+        // Initialize Chart.js
+        const ctx = document.getElementById('topProvincesChart').getContext('2d');
+        const topProvincesChart = new Chart(ctx, {
+            type: 'bar',
             data: {
-                labels: <?php echo json_encode($labels); ?>,
+                labels: <?php echo json_encode($province_labels); ?>,
                 datasets: [{
-                    label: 'การลงทะเบียน',
-                    data: <?php echo json_encode($registration_data); ?>,
-                    borderColor: '#1a73e8',
-                    backgroundColor: 'rgba(26, 115, 232, 0.1)',
-                    fill: true,
-                    tension: 0.4
+                    label: 'จำนวนการลงทะเบียน',
+                    data: <?php echo json_encode($registration_counts); ?>,
+                    backgroundColor: 'rgba(26, 115, 232, 0.6)',
+                    borderColor: 'rgba(26, 115, 232, 1)',
+                    borderWidth: 1
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {
-                            color: '#6c757d',
-                            font: {
-                                family: "'Inter', sans-serif"
-                            }
+                        title: {
+                            display: true,
+                            text: 'จำนวนการลงทะเบียน'
                         }
                     },
                     x: {
-                        ticks: {
-                            color: '#6c757d',
-                            font: {
-                                family: "'Inter', sans-serif"
-                            }
+                        title: {
+                            display: true,
+                            text: 'จังหวัด'
                         }
                     }
                 },
                 plugins: {
-                    legend: {
-                        display: false
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(context) {
+                                const index = context.dataIndex;
+                                const amphurs = <?php echo json_encode($amphur_data); ?>[index];
+                                const locations = <?php echo json_encode($location_data); ?>[index];
+                                return [
+                                    'อำเภอ: ' + amphurs.join(', '),
+                                    'สถานที่: ' + locations.join(', ')
+                                ];
+                            }
+                        }
                     }
                 }
             }
         });
+
+        // Refresh Timer
+        let timer = 60;
+        const timerElement = document.getElementById('refresh-timer');
+        const refreshBtn = document.getElementById('refresh-btn');
+
+        const countdown = setInterval(() => {
+            timer--;
+            timerElement.textContent = `รีเฟรชใน ${timer} วินาที`;
+            if (timer <= 0) {
+                window.location.reload();
+            }
+        }, 1000);
+
+        refreshBtn.addEventListener('click', () => {
+            window.location.reload();
+        });
+
+        // Initialize Tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+        // Initialize Toasts
+        const toastElList = document.querySelectorAll('.toast');
+        const toastList = [...toastElList].map(toastEl => new bootstrap.Toast(toastEl));
+        toastList.forEach(toast => toast.show());
     </script>
 </body>
 </html>

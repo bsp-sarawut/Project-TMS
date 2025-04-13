@@ -113,6 +113,10 @@ try {
                 <h3 class="mb-3">ค้นหาคนขับ</h3>
                 <form method="POST" action="" id="searchForm">
                     <div class="row g-3">
+                    <div class="col-md-4 col-12">
+                            <label for="search_input" class="form-label">ค้นหาคนขับ</label>
+                            <input type="text" name="search" id="search_input" class="form-control" placeholder="ค้นหาคนขับ" value="<?php echo isset($search) ? htmlspecialchars($search) : ''; ?>">
+                        </div>
                         <div class="col-md-4 col-12">
                             <label for="province_filter" class="form-label">จังหวัด</label>
                             <select name="province_filter" id="province_filter" class="form-select" onchange="fetchAmphurs(this.value, 'filter')">
@@ -129,10 +133,6 @@ try {
                             <select name="amphur_filter" id="amphur_filter" class="form-select">
                                 <option value="">เลือกอำเภอ</option>
                             </select>
-                        </div>
-                        <div class="col-md-4 col-12">
-                            <label for="search_input" class="form-label">ค้นหาคนขับ</label>
-                            <input type="text" name="search" id="search_input" class="form-control" placeholder="ค้นหาคนขับ" value="<?php echo isset($search) ? htmlspecialchars($search) : ''; ?>">
                         </div>
                     </div>
                     <div class="btn-group d-flex justify-content-start mt-3">
