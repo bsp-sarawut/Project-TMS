@@ -2,87 +2,18 @@
 include('config/condb.php');
 session_start();
 
-if (isset($_GET['delete_id'])) {
+if (isset($_GET['delete_id']) && !empty($_GET['delete_id'])) {
     $delete_id = $_GET['delete_id'];
     try {
         $stmt = $conn->prepare("DELETE FROM car WHERE car_id = :car_id");
-        $stmt->bindParam(':car_id', $delete_id);
+        $stmt->bindParam(':car_id', $delete_id, PDO::PARAM_INT);
         $stmt->execute();
         $_SESSION['success'] = "ลบข้อมูลรถยนต์เรียบร้อยแล้ว";
-        header("Location: car.php");
-        exit();
     } catch (PDOException $e) {
         $_SESSION['error'] = "เกิดข้อผิดพลาดในการลบข้อมูล: " . $e->getMessage();
-        header("Location: car.php");
-        exit();
     }
-}
-
-$totalRows = 0;
-$totalPages = 0;
-$cars = [];
-$searchQuery = "";
-$params = [];
-
-$limit = 10;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
-if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['submit'])) {
-    if (!empty($_POST['search'])) {
-        $search = $_POST['search'];
-        $searchQuery .= " WHERE (c.car_license LIKE :search OR c.car_brand LIKE :search OR c.car_color LIKE :search OR CONCAT(d.driver_name, ' ', d.driver_lastname) LIKE :search)";
-        $params[':search'] = '%' . $search . '%';
-    }
-    if (!empty($_POST['queue_filter'])) {
-        $queue_filter = $_POST['queue_filter'];
-        if ($queue_filter == 'มีคิวรถ') {
-            $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " q.queue_id IS NOT NULL";
-        } elseif ($queue_filter == 'ไม่มีคิวรถ') {
-            $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " q.queue_id IS NULL";
-        }
-    }
-    if (!empty($_POST['status_filter'])) {
-        $status_filter = $_POST['status_filter'];
-        $searchQuery .= ($searchQuery ? " AND" : " WHERE") . " c.car_status = :status_filter";
-        $params[':status_filter'] = $status_filter;
-    }
-}
-
-try {
-    $countStmt = $conn->prepare("SELECT COUNT(*) FROM car c 
-                                 LEFT JOIN driver d ON c.driver_id = d.driver_id 
-                                 LEFT JOIN queue q ON c.car_id = q.car_id 
-                                 $searchQuery");
-    foreach ($params as $key => $value) {
-        $countStmt->bindValue($key, $value);
-    }
-    $countStmt->execute();
-    $totalRows = $countStmt->fetchColumn();
-    $totalPages = ceil($totalRows / $limit);
-} catch (PDOException $e) {
-    $_SESSION['error'] = "เกิดข้อผิดพลาดในการนับข้อมูล: " . $e->getMessage();
-}
-
-try {
-    $sql = "SELECT c.*, 
-            CONCAT(d.driver_name, ' ', d.driver_lastname) AS driver_fullname,
-            q.queue_id AS queue_status
-            FROM car c 
-            LEFT JOIN driver d ON c.driver_id = d.driver_id 
-            LEFT JOIN queue q ON c.car_id = q.car_id 
-            $searchQuery
-            LIMIT :limit OFFSET :offset";
-    $stmt = $conn->prepare($sql);
-    foreach ($params as $key => $value) {
-        $stmt->bindValue($key, $value);
-    }
-    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-    $stmt->execute();
-    $cars = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
-    $_SESSION['error'] = "เกิดข้อผิดพลาดในการดึงข้อมูล: " . $e->getMessage();
+    header("Location: car.php");
+    exit;
 }
 
 try {
@@ -106,73 +37,392 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        body { font-family: 'Kanit', sans-serif; background: #f5f6f5; min-height: 100vh; }
-        .content { margin-left: 250px; padding: 20px; transition: margin-left 0.3s ease; }
-        .card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background: #fff; padding: 15px; margin-bottom: 20px; }
-        .card h3 { color: #333; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 15px; }
-        .form-label { font-weight: 500; color: #444; }
-        .form-select, .form-control { border-radius: 5px; border: 1px solid #ccc; padding: 8px; }
-        .form-select:focus, .form-control:focus { border-color: #007bff; box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); }
-        .btn-primary { background: #007bff; border: none; border-radius: 8px; padding: 8px 20px; transition: background 0.3s ease; }
-        .btn-primary:hover { background: #0056b3; }
-        .btn-secondary { background: #6c757d; border: none; border-radius: 8px; padding: 8px 20px; transition: background 0.3s ease; }
-        .btn-secondary:hover { background: #5a6268; }
-        .btn-warning { background: #f39c12; border: none; border-radius: 5px; padding: 5px 15px; color: #fff; }
-        .btn-danger { background: #e74c3c; border: none; border-radius: 5px; padding: 5px 15px; color: #fff; }
-        .table { border-radius: 5px; overflow: hidden; background: #fff; }
-        .table thead th { background: #003087; color: #fff; text-align: center; padding: 12px; }
-        .table tbody tr:hover { background: #f9f9f9; }
-        .table td { vertical-align: middle; text-align: center; }
-        .pagination { justify-content: center; margin-top: 20px; }
-        .total-count { font-size: 1.1rem; color: #333; margin-bottom: 10px; }
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(to bottom, #f5f6f5, #e9ecef);
+            min-height: 100vh;
+            display: flex;
+            margin: 0;
+        }
+        .sidebar {
+            width: 250px;
+            transition: transform 0.3s ease-in-out;
+            position: fixed;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .sidebar.closed {
+            transform: translateX(-250px);
+        }
+        .content {
+            margin-left: 250px;
+            padding: 30px;
+            flex-grow: 1;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        .content.closed {
+            margin-left: 0;
+        }
+        .header-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h3 {
+            color: #2c3e50;
+            font-weight: 600;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #444;
+            font-size: 0.95rem;
+        }
+        .form-select, .form-control {
+            border-radius: 10px;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+        .form-select:focus, .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            background: #fff;
+        }
+        .btn-primary {
+            background: #007bff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: scale(1.05);
+        }
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
+        .btn-warning {
+            background: #f39c12;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        .btn-warning:hover {
+            background: #d35400;
+            transform: scale(1.05);
+        }
+        .btn-danger {
+            background: #e74c3c;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+        .table thead th {
+            background: #003087;
+            color: #fff;
+            text-align: center;
+            padding: 15px;
+            font-weight: 500;
+        }
+        .table tbody tr {
+            transition: background 0.2s ease;
+        }
+        .table tbody tr:hover {
+            background: #f1f8ff;
+        }
+        .table td {
+            vertical-align: middle;
+            text-align: center;
+            padding: 12px;
+        }
+        .pagination {
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .pagination .page-item .page-link {
+            border-radius: 8px;
+            margin: 0 5px;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        .pagination .page-item .page-link:hover {
+            background: #e9ecef;
+        }
+        .total-count {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .search-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .search-section:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-container .form-control {
+            border-radius: 25px;
+            padding: 12px 20px 12px 45px;
+            border: 1px solid #ced4da;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .search-container .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        .search-input-group {
+            position: relative;
+        }
+        .search-input-group .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 10;
+            font-size: 1.1rem;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .filter-row .col-md-3 {
+            flex: 1;
+            min-width: 200px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .car-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .car-image:hover {
+            transform: scale(1.1);
+        }
+        .image-preview {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+            display: none;
+        }
+        .image-preview-container {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .modal-content {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .modal-header {
+            background: #007bff;
+            color: #fff;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            padding: 20px;
+        }
+        .modal-title {
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 25px;
+        }
+        .modal-footer {
+            border-top: none;
+            padding: 15px 25px;
+        }
+        .modal-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            border-radius: 10px;
+            margin: 0 auto;
+            display: block;
+        }
+        @media (max-width: 768px) {
+            .content {
+                margin-left: 0;
+                padding: 15px;
+            }
+            .sidebar {
+                position: fixed;
+                z-index: 1000;
+                height: 100%;
+            }
+            .filter-row {
+                flex-direction: column;
+            }
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .action-buttons .btn {
+                width: 100%;
+            }
+            .header-title {
+                font-size: 1.5rem;
+            }
+            .car-image {
+                width: 60px;
+                height: 60px;
+            }
+            .image-preview {
+                width: 120px;
+                height: 120px;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="body_car">
     <?php include('sidebar.php'); ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">ระบบจัดการข้อมูลรถยนต์</h2>
+            <h2 class="header-title">ระบบจัดการข้อมูลรถยนต์</h2>
 
-            <div class="card mb-4">
-                <h3 class="mb-3">ค้นหารถยนต์</h3>
-                <form method="POST" action="" id="searchForm">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="search" class="form-label">ค้นหา</label>
-                            <input type="text" name="search" id="search" class="form-control" placeholder="ทะเบียน, ยี่ห้อ, สี, ชื่อคนขับ" value="<?php echo isset($_POST['search']) ? $_POST['search'] : ''; ?>">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="queue_filter" class="form-label">สถานะคิวรถ</label>
-                            <select name="queue_filter" id="queue_filter" class="form-select">
-                                <option value="">ทั้งหมด</option>
-                                <option value="มีคิวรถ" <?php echo (isset($_POST['queue_filter']) && $_POST['queue_filter'] == 'มีคิวรถ') ? 'selected' : ''; ?>>มีคิวรถ</option>
-                                <option value="ไม่มีคิวรถ" <?php echo (isset($_POST['queue_filter']) && $_POST['queue_filter'] == 'ไม่มีคิวรถ') ? 'selected' : ''; ?>>ไม่มีคิวรถ</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="status_filter" class="form-label">สถานะ</label>
-                            <select name="status_filter" id="status_filter" class="form-select">
-                                <option value="">ทั้งหมด</option>
-                                <option value="available" <?php echo (isset($_POST['status_filter']) && $_POST['status_filter'] == 'available') ? 'selected' : ''; ?>>พร้อมใช้งาน</option>
-                                <option value="unavailable" <?php echo (isset($_POST['status_filter']) && $_POST['status_filter'] == 'unavailable') ? 'selected' : ''; ?>>ไม่พร้อมใช้งาน</option>
-                            </select>
-                        </div>
+            <!-- แสดงข้อความแจ้งเตือน -->
+            <?php if (isset($_SESSION['success'])) { ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            text: '<?php echo $_SESSION['success']; ?>',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    });
+                </script>
+                <?php unset($_SESSION['success']); ?>
+            <?php } elseif (isset($_SESSION['error'])) { ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: '<?php echo $_SESSION['error']; ?>',
+                            confirmButtonText: 'ตกลง'
+                        });
+                    });
+                </script>
+                <?php unset($_SESSION['error']); ?>
+            <?php } ?>
+
+            <!-- ส่วนที่ 1: ฟอร์มค้นหารถยนต์ -->
+            <div class="card mb-4 search-section">
+                <h3 class="mb-3">ตัวกรองข้อมูลรถยนต์</h3>
+                <div class="search-container">
+                    <label for="search" class="form-label">ค้นหา</label>
+                    <div class="search-input-group">
+                        <span class="search-icon"><i class="fas fa-search"></i></span>
+                        <input type="text" id="search" class="form-control" placeholder="ค้นหา: ทะเบียน, ยี่ห้อ, สี, ชื่อคนขับ">
                     </div>
-                    <div class="btn-group d-flex justify-content-start mt-3">
-                        <button type="submit" name="submit" class="btn btn-primary me-2">ค้นหา</button>
-                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">เคลียร์ฟิลเตอร์</button>
+                </div>
+                <div class="filter-row">
+                    <div class="col-md-3 col-12">
+                        <label for="queue_filter" class="form-label">สถานะคิวรถ</label>
+                        <select name="queue_filter" id="queue_filter" class="form-select">
+                            <option value="">ทั้งหมด</option>
+                            <option value="มีคิวรถ">มีคิวรถ</option>
+                            <option value="ไม่มีคิวรถ">ไม่มีคิวรถ</option>
+                        </select>
                     </div>
-                </form>
+                    <div class="col-md-3 col-12">
+                        <label for="status_filter" class="form-label">สถานะ</label>
+                        <select name="status_filter" id="status_filter" class="form-select">
+                            <option value="">ทั้งหมด</option>
+                            <option value="available">พร้อมใช้งาน</option>
+                            <option value="unavailable">ไม่พร้อมใช้งาน</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-primary" onclick="loadCars()"><i class="fas fa-search me-2"></i>ค้นหา</button>
+                    <button type="button" class="btn btn-secondary" onclick="clearFilters()"><i class="fas fa-undo me-2"></i>เคลียร์ฟิลเตอร์</button>
+                </div>
             </div>
 
+            <!-- ส่วนที่ 2: รายการรถยนต์ -->
             <div class="card mb-4">
-                <h3 class="mb-3">รายการรถยนต์</h3>
+                <h3 class="mb-3">ข้อมูลรถยนต์ทั้งหมด</h3>
                 <div class="text-end mb-3">
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">เพิ่มรถยนต์</button>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCarModal">
+                        <i class="fas fa-plus me-2"></i>เพิ่มรถยนต์
+                    </button>
                 </div>
-                <div class="total-count">จำนวนรถยนต์ทั้งหมด: <?php echo $totalRows; ?> คัน</div>
+                <div class="total-count">จำนวนรถยนต์ทั้งหมด: <span id="totalRows">0</span> คัน</div>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
@@ -189,79 +439,23 @@ try {
                                 <th>การกระทำ</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php 
-                            $index = ($page - 1) * $limit + 1; 
-                            foreach ($cars as $car) { ?>
-                                <tr>
-                                    <td><?php echo $index++; ?></td>
-                                    <td><?php echo $car['car_license']; ?></td>
-                                    <td><?php echo $car['car_brand']; ?></td>
-                                    <td><?php echo $car['car_color']; ?></td>
-                                    <td><?php echo $car['car_seat']; ?></td>
-                                    <td><?php echo $car['driver_fullname'] ?: 'ไม่ระบุ'; ?></td>
-                                    <td><?php echo $car['car_status'] == 'available' ? 'พร้อมใช้งาน' : 'ไม่พร้อมใช้งาน'; ?></td>
-                                    <td><?php echo $car['queue_status'] ? 'Q-' . $car['queue_status'] : 'ไม่มีคิวรถ'; ?></td>
-                                    <td>
-                                        <?php if (!empty($car['car_image']) && file_exists("uploads/cars/" . $car['car_image'])) { ?>
-                                            <img src="uploads/cars/<?php echo $car['car_image']; ?>" 
-                                                 alt="Car Image" 
-                                                 class="car-image clickable" 
-                                                 style="max-width: 100px; max-height: 100px; object-fit: cover; cursor: pointer;"
-                                                 data-bs-toggle="modal" 
-                                                 data-bs-target="#imageModal" 
-                                                 data-image="uploads/cars/<?php echo $car['car_image']; ?>">
-                                        <?php } else { ?>
-                                            ไม่มีรูปภาพ
-                                        <?php } ?>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-warning btn-sm edit-btn" 
-                                                data-car_id="<?php echo $car['car_id']; ?>"
-                                                data-car_license="<?php echo $car['car_license']; ?>"
-                                                data-car_brand="<?php echo $car['car_brand']; ?>"
-                                                data-car_color="<?php echo $car['car_color']; ?>"
-                                                data-car_seat="<?php echo $car['car_seat']; ?>"
-                                                data-car_status="<?php echo $car['car_status']; ?>"
-                                                data-driver_id="<?php echo $car['driver_id']; ?>"
-                                                data-car_image="<?php echo $car['car_image']; ?>">แก้ไข</button>
-                                        <button type="button" class="btn btn-danger btn-sm delete-btn" 
-                                                data-delete_id="<?php echo $car['car_id']; ?>">ลบ</button>
-                                    </td>
-                                </tr>
-                            <?php } ?>
-                            <?php if (empty($cars)) { ?>
-                                <tr><td colspan="10" class="text-center">ไม่มีข้อมูลรถยนต์</td></tr>
-                            <?php } ?>
+                        <tbody id="carTableBody">
+                            <tr><td colspan="10" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
 
-                <?php if ($totalPages > 1) { ?>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination">
-                            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?page=<?php echo $page - 1; ?>" aria-label="Previous">
-                                    <span aria-hidden="true">«</span>
-                                </a>
-                            </li>
-                            <?php for ($i = 1; $i <= $totalPages; $i++) { ?>
-                                <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                    <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                </li>
-                            <?php } ?>
-                            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                                <a class="page-link" href="?page=<?php echo $page + 1; ?>" aria-label="Next">
-                                    <span aria-hidden="true">»</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                <?php } ?>
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination">
+                        <!-- Pagination จะถูกโหลดด้วย AJAX -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
 
+    <!-- Modal เพิ่มรถยนต์ -->
     <div class="modal fade" id="addCarModal" tabindex="-1" aria-labelledby="addCarModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -305,15 +499,19 @@ try {
                         </div>
                         <div class="mb-3">
                             <label for="car_image_add" class="form-label">รูปภาพรถยนต์:</label>
-                            <input type="file" id="car_image_add" name="car_image" class="form-control">
+                            <input type="file" id="car_image_add" name="car_image" class="form-control" accept="image/*">
+                            <div class="image-preview-container">
+                                <img id="addImagePreview" class="image-preview" alt="ตัวอย่างรูปภาพ">
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">เพิ่มรถยนต์</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>เพิ่มรถยนต์</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal แก้ไขข้อมูลรถยนต์ -->
     <div class="modal fade" id="editCarModal" tabindex="-1" aria-labelledby="editCarModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -324,6 +522,7 @@ try {
                 <div class="modal-body">
                     <form id="editCarForm" method="POST" action="car_update.php" enctype="multipart/form-data">
                         <input type="hidden" id="car_id_edit" name="car_id">
+                        <input type="hidden" id="old_car_image" name="old_car_image">
                         <div class="mb-3">
                             <label for="car_license_edit" class="form-label">หมายเลขทะเบียนรถ:</label>
                             <input type="text" id="car_license_edit" name="car_license" class="form-control" required>
@@ -358,16 +557,19 @@ try {
                         </div>
                         <div class="mb-3">
                             <label for="car_image_edit" class="form-label">รูปภาพรถยนต์:</label>
-                            <input type="file" id="car_image_edit" name="car_image" class="form-control">
-                            <img id="current_car_image" src="" alt="Current Image" style="max-width: 100px; max-height: 100px; object-fit: cover; margin-top: 10px; display: none;">
+                            <input type="file" id="car_image_edit" name="car_image" class="form-control" accept="image/*">
+                            <div class="image-preview-container">
+                                <img id="editImagePreview" class="image-preview" alt="ตัวอย่างรูปภาพ">
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>บันทึกการแก้ไข</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal แสดงรูปภาพ -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -376,7 +578,7 @@ try {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-center">
-                    <img id="modalImage" src="" alt="Car Image" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+                    <img id="modalImage" class="modal-image" alt="รูปภาพรถยนต์">
                 </div>
             </div>
         </div>
@@ -384,188 +586,309 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        $(document).ready(function() {
-            $('#addCarForm').on('submit', function(e) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'ยืนยันการเพิ่มรถยนต์?',
-                    text: 'คุณต้องการเพิ่มข้อมูลรถยนต์นี้หรือไม่?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        var formData = new FormData(this);
-                        $.ajax({
-                            url: 'car_insert.php',
-                            type: 'POST',
-                            data: formData,
-                            contentType: false,
-                            processData: false,
-                            success: function(response) {
-                                if (response === "success") {
-                                    Swal.fire('สำเร็จ!', 'เพิ่มข้อมูลรถยนต์เรียบร้อยแล้ว', 'success').then(() => {
-                                        window.location.href = 'car.php';
-                                    });
-                                } else {
-                                    Swal.fire('เกิดข้อผิดพลาด!', response, 'error');
-                                }
-                            },
-                            error: function(xhr) {
-                                Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถเพิ่มข้อมูลได้: ' + xhr.responseText, 'error');
-                            }
-                        });
-                    }
-                });
-            });
+    let currentPage = 1;
+    let searchTimeout;
 
-            $('.edit-btn').on('click', function() {
-                var car_id = $(this).data('car_id');
-                var car_license = $(this).data('car_license');
-                var car_brand = $(this).data('car_brand');
-                var car_color = $(this).data('car_color');
-                var car_seat = $(this).data('car_seat');
-                var car_status = $(this).data('car_status');
-                var driver_id = $(this).data('driver_id') || '';
-                var car_image = $(this).data('car_image') || '';
+    // โหลดข้อมูลรถยนต์
+    function loadCars(page = 1) {
+        currentPage = page;
+        const search = $('#search').val();
+        const queue_filter = $('#queue_filter').val();
+        const status_filter = $('#status_filter').val();
 
-                console.log('Driver ID:', driver_id);
-                console.log('Car Image:', car_image);
-
-                $('#car_id_edit').val(car_id);
-                $('#car_license_edit').val(car_license);
-                $('#car_brand_edit').val(car_brand);
-                $('#car_color_edit').val(car_color);
-                $('#car_seat_edit').val(car_seat);
-                $('#car_status_edit').val(car_status);
-                $('#driver_id_edit').val(driver_id);
-
-                if (car_image && car_image !== '') {
-                    $('#current_car_image').attr('src', 'uploads/cars/' + car_image).show();
-                } else {
-                    $('#current_car_image').hide();
+        $.ajax({
+            url: 'fetch_cars.php',
+            type: 'POST',
+            data: {
+                page: page,
+                search: search,
+                queue_filter: queue_filter,
+                status_filter: status_filter
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (data.error) {
+                    Swal.fire('เกิดข้อผิดพลาด', data.error, 'error');
+                    $('#carTableBody').html('<tr><td colspan="10" class="text-center text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+                    $('#totalRows').text(0);
+                    $('#pagination').html('');
+                    return;
                 }
 
-                $('#editCarModal').modal('show');
-            });
+                const cars = data.cars;
+                const totalRows = data.totalRows;
+                const totalPages = data.totalPages;
+                let index = (page - 1) * 10 + 1;
+                let html = '';
 
-            $('#editCarForm').on('submit', function(e) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'ยืนยันการแก้ไข?',
-                    text: 'คุณต้องการบันทึกการแก้ไขข้อมูลรถยนต์นี้หรือไม่?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        var formData = new FormData(this);
-                        $.ajax({
-                            url: 'car_update.php',
-                            type: 'POST',
-                            data: formData,
-                            contentType: false,
-                            processData: false,
-                            success: function(response) {
-                                console.log('Update Response:', response);
-                                if (response === "success") {
-                                    Swal.fire('สำเร็จ!', 'แก้ไขข้อมูลรถยนต์เรียบร้อยแล้ว', 'success').then(() => {
-                                        window.location.href = 'car.php';
-                                    });
-                                } else {
-                                    Swal.fire('เกิดข้อผิดพลาด!', response, 'error');
-                                }
-                            },
-                            error: function(xhr) {
-                                Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถแก้ไขข้อมูลได้: ' + xhr.responseText, 'error');
-                            }
-                        });
-                    }
-                });
-            });
+                if (cars.length > 0) {
+                    cars.forEach(car => {
+                        const imageSrc = car.car_image ? `uploads/cars/${car.car_image}` : 'path/to/default-image.jpg';
+                        html += `
+                            <tr>
+                                <td>${index++}</td>
+                                <td>${car.car_license || 'ไม่ระบุ'}</td>
+                                <td>${car.car_brand || 'ไม่ระบุ'}</td>
+                                <td>${car.car_color || 'ไม่ระบุ'}</td>
+                                <td>${car.car_seat || 'ไม่ระบุ'}</td>
+                                <td>${car.driver_fullname || 'ไม่ระบุ'}</td>
+                                <td>${car.car_status == 'available' ? 'พร้อมใช้งาน' : 'ไม่พร้อมใช้งาน'}</td>
+                                <td>${car.queue_status ? 'Q-' + car.queue_status : 'ไม่มีคิวรถ'}</td>
+                                <td>
+                                    ${car.car_image ? 
+                                        `<img src="${imageSrc}" class="car-image" alt="รูปภาพรถยนต์" data-bs-toggle="modal" data-bs-target="#imageModal" data-image="${imageSrc}">` : 
+                                        'ไม่มีรูปภาพ'}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm me-2" data-bs-toggle="modal" data-bs-target="#editCarModal"
+                                        data-car_id="${car.car_id}"
+                                        data-car_license="${car.car_license}"
+                                        data-car_brand="${car.car_brand}"
+                                        data-car_color="${car.car_color}"
+                                        data-car_seat="${car.car_seat}"
+                                        data-car_status="${car.car_status}"
+                                        data-driver_id="${car.driver_id || ''}"
+                                        data-car_image="${imageSrc}"><i class="fas fa-edit"></i> แก้ไข</button>
+                                    <button type="button" class="btn btn-danger btn-sm delete-btn"
+                                        data-delete-id="${car.car_id}"><i class="fas fa-trash-alt"></i> ลบ</button>
+                                </td>
+                            </tr>`;
+                    });
+                } else {
+                    html = '<tr><td colspan="10" class="text-center text-muted">ไม่พบข้อมูลรถยนต์</td></tr>';
+                }
 
-            $('.delete-btn').on('click', function() {
-                var delete_id = $(this).data('delete_id');
-                console.log('Delete ID:', delete_id);
-                Swal.fire({
-                    title: 'คุณแน่ใจหรือไม่?',
-                    text: 'คุณต้องการลบข้อมูลรถยนต์นี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้!',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: 'car.php',
-                            type: 'GET',
-                            data: { delete_id: delete_id },
-                            success: function(response) {
-                                Swal.fire('สำเร็จ!', 'ลบข้อมูลรถยนต์เรียบร้อยแล้ว', 'success').then(() => {
-                                    window.location.href = 'car.php';
-                                });
-                            },
-                            error: function(xhr) {
-                                Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถลบข้อมูลได้: ' + xhr.responseText, 'error');
-                            }
-                        });
-                    }
-                });
-            });
+                $('#carTableBody').html(html);
+                $('#totalRows').text(totalRows);
 
-            $('.car-image').on('click', function() {
-                var imageSrc = $(this).data('image');
-                $('#modalImage').attr('src', imageSrc);
-            });
+                let paginationHtml = '';
+                paginationHtml += `
+                    <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadCars(${page - 1})" aria-label="Previous">
+                            <span aria-hidden="true">«</span>
+                        </a>
+                    </li>`;
+                for (let i = 1; i <= totalPages; i++) {
+                    paginationHtml += `
+                        <li class="page-item ${page == i ? 'active' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadCars(${i})">${i}</a>
+                        </li>`;
+                }
+                paginationHtml += `
+                    <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="javascript:void(0)" onclick="loadCars(${page + 1})" aria-label="Next">
+                            <span aria-hidden="true">»</span>
+                        </a>
+                    </li>`;
+                $('#pagination').html(paginationHtml);
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", status, error);
+                console.log("Response:", xhr.responseText);
+                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลได้: ' + error, 'error');
+                $('#carTableBody').html('<tr><td colspan="10" class="text-center text-muted">ไม่สามารถโหลดข้อมูลได้</td></tr>');
+                $('#totalRows').text(0);
+                $('#pagination').html('');
+            }
+        });
+    }
 
-            <?php if (isset($_SESSION['success'])) { ?>
-                Swal.fire('สำเร็จ!', '<?php echo $_SESSION['success']; ?>', 'success');
-                <?php unset($_SESSION['success']); ?>
-            <?php } ?>
-            <?php if (isset($_SESSION['error'])) { ?>
-                Swal.fire('เกิดข้อผิดพลาด!', '<?php echo $_SESSION['error']; ?>', 'error');
-                <?php unset($_SESSION['error']); ?>
-            <?php } ?>
+    // ล้างฟิลเตอร์
+    function clearFilters() {
+        $('#search').val('');
+        $('#queue_filter').val('');
+        $('#status_filter').val('');
+        loadCars();
+    }
 
-            $('.close-btn').on('click', function() {
-                $('.sidebar').addClass('closed');
-                $('.content').addClass('closed');
-            });
-            $('.open-btn').on('click', function() {
-                $('.sidebar').removeClass('closed');
-                $('.content').removeClass('closed');
+    $(document).ready(function() {
+        // Sidebar Toggle
+        $('.close-btn').on('click', function() {
+            $('.sidebar').addClass('closed');
+            $('.content').addClass('closed');
+        });
+
+        $('.open-btn').on('click', function() {
+            $('.sidebar').removeClass('closed');
+            $('.content').removeClass('closed');
+        });
+
+        // โหลดข้อมูลเริ่มต้น
+        loadCars();
+
+        // ค้นหาแบบเรียลไทม์
+        $('#search').on('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadCars();
+            }, 300);
+        });
+
+        // เปลี่ยนตัวกรอง
+        $('#queue_filter, #status_filter').on('change', function() {
+            loadCars();
+        });
+
+        // SweetAlert สำหรับยืนยันการลบ
+        $(document).on('click', '.delete-btn', function() {
+            var deleteId = $(this).data('delete-id');
+            Swal.fire({
+                title: 'คุณแน่ใจหรือไม่?',
+                text: 'คุณต้องการลบข้อมูลรถยนต์นี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'car.php?delete_id=' + deleteId;
+                }
             });
         });
 
-        function clearFilters() {
-            $('#search').val('');
-            $('#queue_filter').val('');
-            $('#status_filter').val('');
-            $.ajax({
-                url: 'car.php',
-                type: 'POST',
-                data: { submit: true, search: '', queue_filter: '', status_filter: '' },
-                success: function(response) {
-                    var newContent = $(response).find('.table-responsive').html();
-                    $('.table-responsive').html(newContent);
-                    var newTotal = $(response).find('. warfarin-count').text();
-                    $('.total-count').text(newTotal);
-                    var newPagination = $(response).find('.pagination').html();
-                    $('.pagination').html(newPagination);
-                },
-                error: function(xhr) {
-                    Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถรีเซ็ตข้อมูลได้: ' + xhr.responseText, 'error');
+        // ตั้งค่า Modal แก้ไข
+        $('#editCarModal').on('show.bs.modal', function(event) {
+            var button = $(event.relatedTarget);
+            var car_id = button.data('car_id');
+            var car_license = button.data('car_license');
+            var car_brand = button.data('car_brand');
+            var car_color = button.data('car_color');
+            var car_seat = button.data('car_seat');
+            var car_status = button.data('car_status');
+            var driver_id = button.data('driver_id');
+            var car_image = button.data('car_image');
+
+            var modal = $(this);
+            modal.find('#car_id_edit').val(car_id);
+            modal.find('#car_license_edit').val(car_license);
+            modal.find('#car_brand_edit').val(car_brand);
+            modal.find('#car_color_edit').val(car_color);
+            modal.find('#car_seat_edit').val(car_seat);
+            modal.find('#car_status_edit').val(car_status);
+            modal.find('#driver_id_edit').val(driver_id);
+            modal.find('#old_car_image').val(car_image);
+
+            if (car_image) {
+                $('#editImagePreview').attr('src', car_image).show();
+            } else {
+                $('#editImagePreview').hide();
+            }
+        });
+
+        // Preview รูปภาพก่อนอัปโหลด (เพิ่มรถยนต์)
+        $('#car_image_add').on('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#addImagePreview').attr('src', e.target.result).show();
+                };
+                reader.readAsDataURL(file);
+            } else {
+                $('#addImagePreview').hide();
+            }
+        });
+
+        // Preview รูปภาพก่อนอัปโหลด (แก้ไขรถยนต์)
+        $('#car_image_edit').on('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    $('#editImagePreview').attr('src', e.target.result).show();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // แสดงรูปภาพใน Modal เมื่อคลิก
+        $(document).on('click', '.car-image', function() {
+            const imageSrc = $(this).data('image');
+            $('#modalImage').attr('src', imageSrc);
+        });
+
+        // SweetAlert สำหรับเพิ่มรถยนต์
+        $('#addCarForm').on('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'ยืนยันการเพิ่มรถยนต์?',
+                text: 'คุณต้องการเพิ่มข้อมูลรถยนต์นี้หรือไม่?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var formData = new FormData(this);
+                    $.ajax({
+                        url: 'car_insert.php',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        dataType: 'json', // ระบุว่า response เป็น JSON
+                        success: function(response) {
+                            if (response.status === "success") {
+                                Swal.fire('สำเร็จ!', response.message, 'success').then(() => {
+                                    $('#addCarModal').modal('hide');
+                                    loadCars(); // รีโหลดข้อมูลหลังเพิ่ม
+                                });
+                            } else {
+                                Swal.fire('เกิดข้อผิดพลาด!', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถเพิ่มข้อมูลได้: ' + (xhr.responseJSON?.message || xhr.responseText), 'error');
+                        }
+                    });
                 }
             });
-        }
-    </script>
+        });
+
+        // SweetAlert สำหรับแก้ไขรถยนต์
+        $('#editCarForm').on('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'ยืนยันการแก้ไข?',
+                text: 'คุณต้องการบันทึกการแก้ไขข้อมูลรถยนต์นี้หรือไม่?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var formData = new FormData(this);
+                    $.ajax({
+                        url: 'car_update.php',
+                        type: 'POST',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        dataType: 'json', // ระบุว่า response เป็น JSON
+                        success: function(response) {
+                            if (response.status === "success") {
+                                Swal.fire('สำเร็จ!', response.message, 'success').then(() => {
+                                    $('#editCarModal').modal('hide');
+                                    loadCars(); // รีโหลดข้อมูลหลังแก้ไข
+                                });
+                            } else {
+                                Swal.fire('เกิดข้อผิดพลาด!', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถแก้ไขข้อมูลได้: ' + (xhr.responseJSON?.message || xhr.responseText), 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>

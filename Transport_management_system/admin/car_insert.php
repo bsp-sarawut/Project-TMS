@@ -2,6 +2,8 @@
 include('config/condb.php');
 session_start();
 
+header('Content-Type: application/json'); // กำหนดให้ response เป็น JSON
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $car_license = $_POST['car_license'];
     $car_brand = $_POST['car_brand'];
@@ -15,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $checkStmt->bindParam(':car_license', $car_license);
     $checkStmt->execute();
     if ($checkStmt->fetchColumn() > 0) {
-        echo "error: หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว";
+        echo json_encode(['status' => 'error', 'message' => 'หมายเลขทะเบียนรถนี้มีอยู่ในระบบแล้ว']);
         exit();
     }
 
@@ -25,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $driverCheckStmt->bindParam(':driver_id', $driver_id);
         $driverCheckStmt->execute();
         if ($driverCheckStmt->fetchColumn() > 0) {
-            echo "error: คนขับนี้ถูกผูกกับรถคันอื่นแล้ว";
+            echo json_encode(['status' => 'error', 'message' => 'คนขับนี้ถูกผูกกับรถคันอื่นแล้ว']);
             exit();
         }
     }
@@ -33,13 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // ตรวจสอบและอัปโหลดรูปภาพ (ถ้ามีในฟอร์ม)
     $car_image = null;
     if (isset($_FILES['car_image']) && $_FILES['car_image']['error'] == 0) {
-        $car_image = $_FILES['car_image']['name'];
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $file_type = mime_content_type($_FILES['car_image']['tmp_name']);
+        if (!in_array($file_type, $allowed_types)) {
+            echo json_encode(['status' => 'error', 'message' => 'รูปภาพต้องเป็นไฟล์ประเภท JPEG, PNG หรือ GIF เท่านั้น']);
+            exit();
+        }
+
+        $car_image = time() . '_' . basename($_FILES['car_image']['name']); // เพิ่ม timestamp เพื่อป้องกันชื่อไฟล์ซ้ำ
         $targetDir = "uploads/cars/";
         if (!file_exists($targetDir)) {
-            mkdir($targetDir, 0777, true); // สร้างโฟลเดอร์ถ้ายังไม่มี
+            mkdir($targetDir, 0777, true);
         }
-        $targetFile = $targetDir . basename($car_image);
-        move_uploaded_file($_FILES['car_image']['tmp_name'], $targetFile);
+        $targetFile = $targetDir . $car_image;
+        if (!move_uploaded_file($_FILES['car_image']['tmp_name'], $targetFile)) {
+            echo json_encode(['status' => 'error', 'message' => 'ไม่สามารถอัปโหลดรูปภาพได้']);
+            exit();
+        }
     }
 
     try {
@@ -53,12 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmt->bindParam(':car_image', $car_image);
         $stmt->bindParam(':driver_id', $driver_id, PDO::PARAM_INT);
         $stmt->execute();
-        echo "success"; // ส่งการตอบสนองกลับไปให้ AJAX
+        echo json_encode(['status' => 'success', 'message' => 'เพิ่มข้อมูลรถยนต์เรียบร้อยแล้ว']);
     } catch (PDOException $e) {
-        echo "error: เกิดข้อผิดพลาดในการเพิ่มข้อมูล: " . $e->getMessage();
+        echo json_encode(['status' => 'error', 'message' => 'เกิดข้อผิดพลาดในการเพิ่มข้อมูล: ' . $e->getMessage()]);
     }
 } else {
-    echo "error: Invalid request";
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
 }
 exit();
 ?>
