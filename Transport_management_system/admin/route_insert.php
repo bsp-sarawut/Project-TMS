@@ -2,7 +2,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <?php
-include('config/condb.php');
+include 'config/condb.php';
 session_start();
 
 if (isset($_POST['submit'])) {
@@ -20,15 +20,19 @@ if (isset($_POST['submit'])) {
     } else {
         // ตรวจสอบและอัปโหลดไฟล์รูปภาพ
         if (isset($_FILES['route_image']) && $_FILES['route_image']['error'] == 0) {
-            $targetDir = "uploads/route_img/"; // โฟลเดอร์เก็บรูปภาพ
+            $targetDir = "uploads/route_img/";
             $fileName = basename($_FILES['route_image']['name']);
             $fileExt = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
-            $allowedTypes = ['jpg', 'jpeg', 'png', 'gif']; // นามสกุลที่อนุญาต
+            $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
 
             // ตรวจสอบนามสกุลไฟล์
             if (in_array($fileExt, $allowedTypes)) {
-                $newFileName = time() . "_" . $fileName;
+                $newFileName = time() . "_" . uniqid() . "." . $fileExt;
                 $targetFilePath = $targetDir . $newFileName;
+
+                if (!file_exists($targetDir)) {
+                    mkdir($targetDir, 0777, true);
+                }
 
                 if (move_uploaded_file($_FILES['route_image']['tmp_name'], $targetFilePath)) {
                     $route_image = $targetFilePath;
@@ -72,19 +76,6 @@ if (isset($_POST['submit'])) {
     $text = "กรุณากรอกข้อมูลให้ครบถ้วน";
 }
 
-// แสดง SweetAlert2
-echo "<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        Swal.fire({
-            icon: '" . ($message === 'success' ? 'success' : 'error') . "',
-            title: '" . ($message === 'success' ? 'สำเร็จ' : 'ข้อผิดพลาด') . "',
-            text: '$text',
-            confirmButtonText: 'ตกลง'
-        }).then(() => {
-            window.location.href = 'route.php';
-        });
-    });
-</script>";
-
+header("Location: route.php");
 exit();
 ?>
