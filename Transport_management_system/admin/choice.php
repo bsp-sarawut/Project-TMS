@@ -46,10 +46,10 @@ try {
         }
         .sidebar { 
             width: 250px; 
-            transition: width 0.3s ease-in-out; 
+            transition: transform 0.3s ease-in-out; 
         }
         .sidebar.closed { 
-            width: 0; 
+            transform: translateX(-250px); 
             overflow: hidden; 
         }
         .content { 
@@ -58,7 +58,7 @@ try {
             flex-grow: 1; 
             transition: margin-left 0.3s ease-in-out; 
         }
-        .content.expanded { 
+        .content.closed { 
             margin-left: 0; 
         }
         .card { 
@@ -144,31 +144,15 @@ try {
             color: #fff; 
             border-radius: 10px 10px 0 0; 
         }
-        .open-btn { 
-            position: fixed; 
-            top: 10px; 
-            left: 10px; 
-            z-index: 1000; 
-            background: #007bff; 
-            color: #fff; 
-            border: none; 
-            border-radius: 5px; 
-            padding: 6px 12px; 
-            cursor: pointer; 
-            display: none; 
-        }
         @media (max-width: 768px) {
             .content { 
-                margin-left: 0; 
+                margin-left: 250px; 
                 padding: 15px; 
             }
             .sidebar { 
                 position: fixed; 
                 z-index: 1000; 
                 height: 100%; 
-            }
-            .open-btn { 
-                display: block; 
             }
         }
     </style>
@@ -336,23 +320,40 @@ try {
         </div>
     </div>
 
-    <button class="open-btn" id="open-btn">☰</button>
-
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
-        // Sidebar Toggle
-        document.getElementById('close-btn')?.addEventListener('click', function() {
-            document.getElementById('sidebar').classList.add('closed');
-            document.querySelector('.content').classList.add('expanded');
-            document.getElementById('open-btn').style.display = 'block';
+        // Sidebar Toggle with localStorage
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const closeBtn = document.getElementById('close-btn');
+        const openBtn = document.getElementById('open-btn');
+
+        // โหลดสถานะ Sidebar จาก localStorage
+        window.addEventListener('load', () => {
+            const sidebarState = localStorage.getItem('sidebarState');
+            if (sidebarState === 'closed') {
+                sidebar.classList.add('closed');
+                content.classList.add('closed');
+                openBtn.style.display = 'block';
+            }
         });
 
-        document.getElementById('open-btn').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.remove('closed');
-            document.querySelector('.content').classList.remove('expanded');
-            this.style.display = 'none';
+        // ซ่อน Sidebar
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            openBtn.style.display = 'block';
+            localStorage.setItem('sidebarState', 'closed');
+        });
+
+        // เปิด Sidebar
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.remove('closed');
+            content.classList.remove('closed');
+            openBtn.style.display = 'none';
+            localStorage.setItem('sidebarState', 'open');
         });
 
         // ฟังก์ชันคำนวณวันแรกและวันสุดท้ายของเดือน

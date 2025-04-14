@@ -99,7 +99,7 @@ if (isset($_POST['delete_student'])) {
     exit;
 }
 
-// เพิ่มนักเรียน
+// เพ黄เพิ่มนักเรียน
 if (isset($_POST['add_student'])) {
     $queue_id = $_POST['queue_id'];
     $student_id = $_POST['student_id'];
@@ -159,27 +159,116 @@ function getAvailableStudents($conn, $queue_id) {
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
-        body { background: #f5f6f5; font-family: 'Kanit', sans-serif; min-height: 100vh; }
-        .content { margin-left: 250px; padding: 20px; transition: margin-left 0.3s ease; }
-        .card { border-radius: 10px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); background: #fff; padding: 15px; }
-        .card h3 { color: #333; font-weight: 600; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; }
-        .form-label { font-weight: 500; color: #444; }
-        .form-select, .form-control { border-radius: 5px; border: 1px solid #ccc; padding: 8px; }
-        .form-select:focus, .form-control:focus { border-color: #007bff; box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); }
-        .btn-primary { border-radius: 8px; padding: 8px 20px; background: #007bff; border: none; }
-        .btn-primary:hover { background: #0056b3; }
-        .btn-secondary { border-radius: 8px; padding: 8px 20px; background: #6c757d; border: none; }
-        .btn-secondary:hover { background: #5a6268; }
-        .table thead th { background: #003087; color: #fff; text-align: center; }
-        .table tbody tr:hover { background: #f9f9f9; }
-        .badge-success { background: #28a745; }
-        .badge-warning { background: #ffc107; }
-        .btn-toggle { font-size: 0.9rem; padding: 2px 8px; }
-        .student-table { width: 100%; border-collapse: collapse; }
-        .student-table th, .student-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .student-table th { background: #e9ecef; }
-        .btn-sm { margin: 2px; }
-        @media (max-width: 768px) { .content { margin-left: 0; padding: 15px; } }
+        body { 
+            background: #f5f6f5; 
+            font-family: 'Kanit', sans-serif; 
+            min-height: 100vh; 
+            display: flex;
+        }
+        .sidebar { 
+            width: 250px; 
+            transition: transform 0.3s ease-in-out; 
+        }
+        .sidebar.closed { 
+            transform: translateX(-250px); 
+            overflow: hidden; 
+        }
+        .content { 
+            margin-left: 250px; 
+            padding: 20px; 
+            flex-grow: 1; 
+            transition: margin-left 0.3s ease-in-out; 
+        }
+        .content.closed { 
+            margin-left: 0; 
+        }
+        .card { 
+            border-radius: 10px; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+            background: #fff; 
+            padding: 15px; 
+        }
+        .card h3 { 
+            color: #333; 
+            font-weight: 600; 
+            border-bottom: 1px solid #e0e0e0; 
+            padding-bottom: 5px; 
+        }
+        .form-label { 
+            font-weight: 500; 
+            color: #444; 
+        }
+        .form-select, .form-control { 
+            border-radius: 5px; 
+            border: 1px solid #ccc; 
+            padding: 8px; 
+        }
+        .form-select:focus, .form-control:focus { 
+            border-color: #007bff; 
+            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); 
+        }
+        .btn-primary { 
+            border-radius: 8px; 
+            padding: 8px 20px; 
+            background: #007bff; 
+            border: none; 
+        }
+        .btn-primary:hover { 
+            background: #0056b3; 
+        }
+        .btn-secondary { 
+            border-radius: 8px; 
+            padding: 8px 20px; 
+            background: #6c757d; 
+            border: none; 
+        }
+        .btn-secondary:hover { 
+            background: #5a6268; 
+        }
+        .table thead th { 
+            background: #003087; 
+            color: #fff; 
+            text-align: center; 
+        }
+        .table tbody tr:hover { 
+            background: #f9f9f9; 
+        }
+        .badge-success { 
+            background: #28a745; 
+        }
+        .badge-warning { 
+            background: #ffc107; 
+        }
+        .btn-toggle { 
+            font-size: 0.9rem; 
+            padding: 2px 8px; 
+        }
+        .student-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        .student-table th, .student-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+            text-align: center; 
+        }
+        .student-table th { 
+            background: #e9ecef; 
+        }
+        .btn-sm { 
+            margin: 2px; 
+        }
+        @media (max-width: 768px) { 
+            .content { 
+                margin-left: 250px; 
+                padding: 15px; 
+            }
+            .sidebar { 
+                position: fixed; 
+                z-index: 1000; 
+                height: 100%; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -414,6 +503,38 @@ function getAvailableStudents($conn, $queue_id) {
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // Sidebar Toggle with localStorage
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    const closeBtn = document.getElementById('close-btn');
+    const openBtn = document.getElementById('open-btn');
+
+    // โหลดสถานะ Sidebar จาก localStorage
+    window.addEventListener('load', () => {
+        const sidebarState = localStorage.getItem('sidebarState');
+        if (sidebarState === 'closed') {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            openBtn.style.display = 'block';
+        }
+    });
+
+    // ซ่อน Sidebar
+    closeBtn.addEventListener('click', () => {
+        sidebar.classList.add('closed');
+        content.classList.add('closed');
+        openBtn.style.display = 'block';
+        localStorage.setItem('sidebarState', 'closed');
+    });
+
+    // เปิด Sidebar
+    openBtn.addEventListener('click', () => {
+        sidebar.classList.remove('closed');
+        content.classList.remove('closed');
+        openBtn.style.display = 'none';
+        localStorage.setItem('sidebarState', 'open');
+    });
+
     // ตั้งค่า Flatpickr สำหรับ filter วันที่
     flatpickr("#queue_date", {
         dateFormat: "Y-m-d",

@@ -83,10 +83,10 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
         .sidebar { 
             width: 250px; 
-            transition: width 0.3s ease-in-out; 
+            transition: transform 0.3s ease-in-out; 
         }
         .sidebar.closed { 
-            width: 0; 
+            transform: translateX(-250px); 
             overflow: hidden; 
         }
         .content { 
@@ -95,7 +95,7 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
             flex-grow: 1; 
             transition: margin-left 0.3s ease-in-out; 
         }
-        .content.expanded { 
+        .content.closed { 
             margin-left: 0; 
         }
         .card { 
@@ -186,22 +186,9 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
             color: #fff; 
             border-radius: 10px 10px 0 0; 
         }
-        .open-btn { 
-            position: fixed; 
-            top: 10px; 
-            left: 10px; 
-            z-index: 1000; 
-            background: #007bff; 
-            color: #fff; 
-            border: none; 
-            border-radius: 5px; 
-            padding: 6px 12px; 
-            cursor: pointer; 
-            display: none; 
-        }
         @media (max-width: 768px) {
             .content { 
-                margin-left: 0; 
+                margin-left: 250px; 
                 padding: 15px; 
             }
             .sidebar { 
@@ -209,15 +196,12 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 z-index: 1000; 
                 height: 100%; 
             }
-            .open-btn { 
-                display: block; 
-            }
         }
     </style>
 </head>
 <body>
     <?php include 'sidebar.php'; ?>
-    <div class="content">
+    <div class="content" id="content">
         <div class="container mt-4">
             <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">จัดการการลงทะเบียน</h2>
 
@@ -349,30 +333,48 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <button class="open-btn" id="open-btn">☰</button>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Sidebar Toggle with localStorage
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const closeBtn = document.getElementById('close-btn');
+        const openBtn = document.getElementById('open-btn');
+
+        // โหลดสถานะ Sidebar จาก localStorage
+        window.addEventListener('load', () => {
+            const sidebarState = localStorage.getItem('sidebarState');
+            if (sidebarState === 'closed') {
+                sidebar.classList.add('closed');
+                content.classList.add('closed');
+                openBtn.style.display = 'block';
+            }
+        });
+
+        // ซ่อน Sidebar
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            openBtn.style.display = 'block';
+            localStorage.setItem('sidebarState', 'closed');
+        });
+
+        // เปิด Sidebar
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.remove('closed');
+            content.classList.remove('closed');
+            openBtn.style.display = 'none';
+            localStorage.setItem('sidebarState', 'open');
+        });
+
         function openImagePreview(imagePath) {
             document.getElementById('previewImage').src = imagePath;
             const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
             imagePreviewModal.show();
         }
 
-        document.getElementById('close-btn')?.addEventListener('click', function() {
-            document.getElementById('sidebar').classList.add('closed');
-            document.querySelector('.content').classList.add('expanded');
-            document.getElementById('open-btn').style.display = 'block';
-        });
-
-        document.getElementById('open-btn').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.remove('closed');
-            document.querySelector('.content').classList.remove('expanded');
-            this.style.display = 'none';
-        });
-
-        document.getElementById('province').addEventListener('change', function() {
-            var provinceID = this.value;
+        function loadAmphur() {
+            var provinceID = document.getElementById('province').value;
             if (provinceID) {
                 var xhr = new XMLHttpRequest();
                 xhr.open('POST', 'get_amphur.php', true);
@@ -380,13 +382,15 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 xhr.onload = function() {
                     if (xhr.status === 200) {
                         document.getElementById('amphur').innerHTML = xhr.responseText;
+                        loadLocation(); // เรียก loadLocation เพื่อโหลดจุดขึ้นรถหลังจากโหลดอำเภอ
                     }
                 };
                 xhr.send('province_id=' + provinceID);
             } else {
                 document.getElementById('amphur').innerHTML = '<option value="">ทั้งหมด</option>';
+                document.getElementById('location').innerHTML = '<option value="">ทั้งหมด</option>';
             }
-        });
+        }
 
         function loadLocation() {
             var provinceID = document.getElementById('province').value;
@@ -404,6 +408,16 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 document.getElementById('location').innerHTML = '<option value="">ทั้งหมด</option>';
             }
         }
+
+        // โหลดข้อมูลอำเภอและจุดขึ้นรถเมื่อหน้าโหลด
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($_GET['province']) && $_GET['province'] !== ''): ?>
+                loadAmphur();
+            <?php endif; ?>
+            <?php if (isset($_GET['amphur']) && $_GET['amphur'] !== ''): ?>
+                loadLocation();
+            <?php endif; ?>
+        });
 
         // SweetAlert2 สำหรับการลบ
         $(document).ready(function() {

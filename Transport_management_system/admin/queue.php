@@ -46,11 +46,24 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             background: #f5f6f5;
             font-family: 'Kanit', sans-serif;
             min-height: 100vh;
+            display: flex;
+        }
+        .sidebar { 
+            width: 250px; 
+            transition: transform 0.3s ease-in-out; 
+        }
+        .sidebar.closed { 
+            transform: translateX(-250px); 
+            overflow: hidden; 
         }
         .content {
             margin-left: 250px;
             padding: 20px;
+            flex-grow: 1;
             transition: margin-left 0.3s ease;
+        }
+        .content.closed { 
+            margin-left: 0; 
         }
         .card {
             border-radius: 10px;
@@ -117,8 +130,13 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         }
         @media (max-width: 768px) {
             .content {
-                margin-left: 0;
+                margin-left: 250px;
                 padding: 15px;
+            }
+            .sidebar { 
+                position: fixed; 
+                z-index: 1000; 
+                height: 100%; 
             }
         }
     </style>
@@ -217,6 +235,38 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
 <script>
+    // Sidebar Toggle with localStorage
+    const sidebar = document.getElementById('sidebar');
+    const content = document.getElementById('content');
+    const closeBtn = document.getElementById('close-btn');
+    const openBtn = document.getElementById('open-btn');
+
+    // โหลดสถานะ Sidebar จาก localStorage
+    window.addEventListener('load', () => {
+        const sidebarState = localStorage.getItem('sidebarState');
+        if (sidebarState === 'closed') {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            openBtn.style.display = 'block';
+        }
+    });
+
+    // ซ่อน Sidebar
+    closeBtn.addEventListener('click', () => {
+        sidebar.classList.add('closed');
+        content.classList.add('closed');
+        openBtn.style.display = 'block';
+        localStorage.setItem('sidebarState', 'closed');
+    });
+
+    // เปิด Sidebar
+    openBtn.addEventListener('click', () => {
+        sidebar.classList.remove('closed');
+        content.classList.remove('closed');
+        openBtn.style.display = 'none';
+        localStorage.setItem('sidebarState', 'open');
+    });
+
     // ตั้งค่า Flatpickr
     flatpickr("#date_picker", {
         mode: "range",
@@ -290,7 +340,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         const date = datePicker.split(" to ")[0];
         let url = `get_available_cars.php?date=${date}`;
         if (provinceID) url += `&province_id=${provinceID}`;
-        if (amphurID) url += `&amphur_id=${amphurID}`;
+        if (amphurID) url += `&hur_id=${amphurID}`;
 
         const xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);

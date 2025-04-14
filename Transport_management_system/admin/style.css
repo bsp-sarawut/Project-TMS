@@ -4,29 +4,29 @@ body {
     height: 100vh;
     margin: 0;
     overflow: hidden;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* Sidebar Styling */
 .sidebar {
     width: 250px;
-    background: linear-gradient(180deg, #2c3238 0%, #1e2328 100%); /* Gradient background */
+    background: linear-gradient(180deg, #2c3238 0%, #1e2328 100%);
     color: white;
     position: fixed;
     height: 100%;
     top: 0;
     left: 0;
-    padding-top: 30px; /* Increased padding for breathing room */
+    padding-top: 30px;
     transition: transform 0.3s ease-in-out;
     overflow-y: auto;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3); /* Subtle shadow for depth */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar h3 {
     font-size: 1.5rem;
     font-weight: 600;
     padding-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Subtle divider */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Sidebar Links */
@@ -37,13 +37,13 @@ body {
     display: flex;
     align-items: center;
     background-color: transparent;
-    border-left: 4px solid transparent; /* For active/hover effect */
+    border-left: 4px solid transparent;
     transition: all 0.3s ease;
     font-size: 1rem;
 }
 
 .sidebar a i {
-    margin-right: 10px; /* Space for icons (e.g., Font Awesome) */
+    margin-right: 10px;
     width: 20px;
     text-align: center;
 }
@@ -51,7 +51,7 @@ body {
 .sidebar a:hover {
     background-color: rgba(0, 123, 255, 0.1);
     color: #ffffff;
-    border-left: 4px solid #007bff; /* Highlight on hover */
+    border-left: 4px solid #007bff;
 }
 
 /* Active Link */
@@ -70,14 +70,14 @@ body {
 .sidebar a.logout {
     background-color: #dc3545;
     margin: 20px 15px;
-    border-radius: 5px; /* Rounded corners */
+    border-radius: 5px;
     text-align: center;
     transition: all 0.3s ease;
 }
 
 .sidebar a.logout:hover {
     background-color: #ff6b6b;
-    border-left: 4px solid transparent; /* Remove border on logout hover */
+    border-left: 4px solid transparent;
 }
 
 /* Close Button */
@@ -90,11 +90,12 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .close-btn:hover {
     color: #ffffff;
+    transform: scale(1.2) rotate(90deg);
 }
 
 /* Content and Open Button */
@@ -116,22 +117,24 @@ body {
 }
 
 .open-btn {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 24px;
-    color: white;
-    background: #575757;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: #1a73e8;
+    color: #ffffff;
     border: none;
     border-radius: 5px;
-    padding: 5px 10px;
+    padding: 10px 15px;
+    font-size: 1.2rem;
     cursor: pointer;
+    z-index: 1000;
     display: none;
-    transition: background 0.3s ease;
+    transition: background 0.3s ease, transform 0.3s ease;
 }
 
 .open-btn:hover {
-    background: #007bff;
+    background: #1557b0;
+    transform: translateX(5px);
 }
 
 .sidebar.closed ~ .open-btn {

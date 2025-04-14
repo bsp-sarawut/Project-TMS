@@ -115,7 +115,7 @@ try {
          LIMIT 5"
     );
     $stmt_registrations->execute();
-    $recent_registrations = $stmt_registrations->fetchAll(PDO::FETCH_ASSOC); // แก้ไขตรงนี้
+    $recent_registrations = $stmt_registrations->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error'] = "เกิดข้อผิดพลาด: " . $e->getMessage();
     header("location: index.php");
@@ -145,20 +145,6 @@ try {
         .content {
             margin-left: 250px;
             padding: 30px;
-        }
-        .open-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: #1a73e8;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
-            padding: 10px 15px;
-            font-size: 1.2rem;
-            cursor: pointer;
-            z-index: 1000;
-            transition: left 0.3s ease;
         }
         .section-title {
             font-size: 1.5rem;
@@ -330,11 +316,8 @@ try {
         }
         @media (max-width: 768px) {
             .content {
-                margin-left: 60px;
+                margin-left: 250px;
                 padding: 15px;
-            }
-            .open-btn {
-                left: 70px;
             }
             .card-body p {
                 font-size: 1.2rem;
@@ -545,6 +528,35 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Sidebar Toggle Functionality with localStorage
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const closeBtn = document.getElementById('close-btn');
+        const openBtn = document.getElementById('open-btn');
+
+        // โหลดสถานะ Sidebar จาก localStorage
+        window.addEventListener('load', () => {
+            const sidebarState = localStorage.getItem('sidebarState');
+            if (sidebarState === 'closed') {
+                sidebar.classList.add('closed');
+                content.classList.add('closed');
+            }
+        });
+
+        // ซ่อน Sidebar
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            localStorage.setItem('sidebarState', 'closed');
+        });
+
+        // เปิด Sidebar
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.remove('closed');
+            content.classList.remove('closed');
+            localStorage.setItem('sidebarState', 'open');
+        });
+
         // Initialize Chart.js
         const ctx = document.getElementById('topProvincesChart').getContext('2d');
         const topProvincesChart = new Chart(ctx, {

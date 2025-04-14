@@ -278,11 +278,38 @@ if (isset($_POST['export_all'])) {
             background: #f5f6f5;
             font-family: 'Kanit', sans-serif;
             min-height: 100vh;
+            display: flex;
+        }
+        .card h3 { 
+            color: #333; 
+            font-weight: 600; 
+            border-bottom: 1px solid #e0e0e0; 
+            padding-bottom: 5px; 
+        }
+        .card .queue-header h3 { 
+            color: #333; 
+            font-weight: 600; 
+            padding-bottom: 5px; 
+            font-size: 1.5rem;
+        }
+        .sidebar { 
+            width: 250px; 
+            transition: transform 0.3s ease-in-out; 
+        }
+        .sidebar.closed { 
+            transform: translateX(-250px); 
+            overflow: hidden; 
         }
         .content {
+            margin-left: 250px;
             padding: 20px;
+            flex-grow: 1;
+            transition: margin-left 0.3s ease;
             max-height: 100vh;
             overflow-y: auto;
+        }
+        .content.closed { 
+            margin-left: 0; 
         }
         .card {
             border-radius: 10px;
@@ -457,6 +484,7 @@ if (isset($_POST['export_all'])) {
         }
         @media (max-width: 768px) {
             .content {
+                margin-left: 250px;
                 padding: 15px;
             }
             .table th, .table td {
@@ -487,6 +515,11 @@ if (isset($_POST['export_all'])) {
             .queue-details-table td {
                 font-size: 0.9rem;
             }
+            .sidebar { 
+                position: fixed; 
+                z-index: 1000; 
+                height: 100%; 
+            }
         }
     </style>
 </head>
@@ -498,11 +531,11 @@ if (isset($_POST['export_all'])) {
     <!-- Content -->
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">Log คิวรถที่ปิดงานแล้ว</h2>
+            <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">ระบบจัดการ Log คิวรถที่ปิดงานแล้ว</h2>
 
             <!-- ฟอร์มค้นหา -->
             <div class="card mb-4">
-                <h3 class="mb-3">ค้นหาคิวรถที่ปิดงานแล้ว</h3>
+                <h3 class="mb-3">ตัวกรองข้อมูลคิวรถที่ปิดงานแล้ว</h3>
                 <form method="get" action="" id="searchForm">
                     <div class="row g-3">
                         <div class="col-md-3 col-12">
@@ -552,7 +585,7 @@ if (isset($_POST['export_all'])) {
                     ?>
                     <div class="card mb-4">
                         <div class="queue-header">
-                            <h3 class="mb-3">คิว #<?php echo htmlspecialchars($queue_id); ?></h3>
+                            <h3 class="mb-3">ข้อมูลคิว #<?php echo htmlspecialchars($queue_id); ?></h3>
                             <form method="post" style="display: inline;">
                                 <button type="submit" name="export_all" class="btn btn-success">
                                     <i class="fas fa-file-csv"></i> Export ไฟล์(CSV)
@@ -719,6 +752,38 @@ if (isset($_POST['export_all'])) {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
     <script>
+        // Sidebar Toggle with localStorage
+        const sidebar = document.getElementById('sidebar');
+        const content = document.getElementById('content');
+        const closeBtn = document.getElementById('close-btn');
+        const openBtn = document.getElementById('open-btn');
+
+        // โหลดสถานะ Sidebar จาก localStorage
+        window.addEventListener('load', () => {
+            const sidebarState = localStorage.getItem('sidebarState');
+            if (sidebarState === 'closed') {
+                sidebar.classList.add('closed');
+                content.classList.add('closed');
+                openBtn.style.display = 'block';
+            }
+        });
+
+        // ซ่อน Sidebar
+        closeBtn.addEventListener('click', () => {
+            sidebar.classList.add('closed');
+            content.classList.add('closed');
+            openBtn.style.display = 'block';
+            localStorage.setItem('sidebarState', 'closed');
+        });
+
+        // เปิด Sidebar
+        openBtn.addEventListener('click', () => {
+            sidebar.classList.remove('closed');
+            content.classList.remove('closed');
+            openBtn.style.display = 'none';
+            localStorage.setItem('sidebarState', 'open');
+        });
+
         // Flatpickr Initialization
         const closedDates = <?php echo json_encode($closed_dates); ?>;
         flatpickr("#datePicker", {
