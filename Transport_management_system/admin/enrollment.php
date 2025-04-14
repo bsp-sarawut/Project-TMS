@@ -1,64 +1,9 @@
 <?php
 require_once 'config/condb.php';
 
-$sql = "
-    SELECT tr.*, r.location, p.PROVINCE_NAME, a.AMPHUR_NAME, s.stu_name, s.stu_lastname, ts.num_of_days AS schedule_num_of_days, ts.available_dates
-    FROM transport_registration tr
-    LEFT JOIN routes r ON tr.route_id = r.route_ID
-    LEFT JOIN province p ON r.province = p.PROVINCE_ID
-    LEFT JOIN amphur a ON r.amphur = a.AMPHUR_ID
-    LEFT JOIN students s ON tr.stu_username = s.stu_username
-    LEFT JOIN transport_schedule ts ON tr.transport_schedule_id = ts.id
-    WHERE 1=1
-";
-
-if (isset($_GET['search']) && $_GET['search'] !== '') {
-    $search = "%" . $_GET['search'] . "%"; 
-    $sql .= " AND (s.stu_name LIKE :search 
-                OR s.stu_lastname LIKE :search 
-                OR r.location LIKE :search
-                OR p.PROVINCE_NAME LIKE :search
-                OR a.AMPHUR_NAME LIKE :search
-                OR tr.created_at LIKE :search
-                OR ts.num_of_days LIKE :search
-                OR tr.payment_status LIKE :search)";
-}
-
-if (isset($_GET['payment_status']) && $_GET['payment_status'] !== '') {
-    $sql .= " AND tr.payment_status = :payment_status";
-}
-if (isset($_GET['province']) && $_GET['province'] !== '') {
-    $sql .= " AND r.province = :province";
-}
-if (isset($_GET['amphur']) && $_GET['amphur'] !== '') {
-    $sql .= " AND r.amphur = :amphur";
-}
-if (isset($_GET['location']) && $_GET['location'] !== '') {
-    $sql .= " AND r.location = :location";
-}
-
-$sql .= " ORDER BY tr.created_at DESC";
-$stmt = $conn->prepare($sql);
-
-if (isset($_GET['search']) && $_GET['search'] !== '') {
-    $stmt->bindParam(':search', $search);
-}
-if (isset($_GET['payment_status']) && $_GET['payment_status'] !== '') {
-    $stmt->bindParam(':payment_status', $_GET['payment_status']);
-}
-if (isset($_GET['province']) && $_GET['province'] !== '') {
-    $stmt->bindParam(':province', $_GET['province']);
-}
-if (isset($_GET['amphur']) && $_GET['amphur'] !== '') {
-    $stmt->bindParam(':amphur', $_GET['amphur']);
-}
-if (isset($_GET['location']) && $_GET['location'] !== '') {
-    $stmt->bindParam(':location', $_GET['location']);
-}
-
-$stmt->execute();
-$registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
+// ดึงข้อมูลจังหวัดสำหรับ dropdown
+$provinceQuery = $conn->query("SELECT * FROM province");
+$provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
@@ -70,131 +15,367 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.0/dist/sweetalert2.all.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <style>
-        body { 
-            font-family: 'Kanit', sans-serif; 
-            background: #f5f6f5; 
-            min-height: 100vh; 
-            margin: 0;
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(to bottom, #f5f6f5, #e9ecef);
+            min-height: 100vh;
             display: flex;
+            margin: 0;
         }
-        .sidebar { 
-            width: 250px; 
-            transition: transform 0.3s ease-in-out; 
+        .sidebar {
+            width: 250px;
+            transition: transform 0.3s ease-in-out;
+            position: fixed;
+            height: 100%;
+            overflow-y: auto;
         }
-        .sidebar.closed { 
-            transform: translateX(-250px); 
-            overflow: hidden; 
+        .sidebar.closed {
+            transform: translateX(-250px);
         }
-        .content { 
-            margin-left: 250px; 
-            padding: 20px; 
-            flex-grow: 1; 
-            transition: margin-left 0.3s ease-in-out; 
+        .content {
+            margin-left: 250px;
+            padding: 30px;
+            flex-grow: 1;
+            transition: margin-left 0.3s ease-in-out;
         }
-        .content.closed { 
-            margin-left: 0; 
+        .content.closed {
+            margin-left: 0;
         }
-        .card { 
-            border-radius: 10px; 
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
-            background: #fff; 
-            padding: 15px; 
-            margin-bottom: 20px; 
+        .header-title {
+            font-size: 2rem;
+            color: #2c3e50;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
         }
-        .card h3 { 
-            color: #333; 
-            font-weight: 600; 
-            border-bottom: 1px solid #e0e0e0; 
-            padding-bottom: 5px; 
-            margin-bottom: 15px; 
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: transform 0.2s ease;
         }
-        .form-label { 
-            font-weight: 500; 
-            color: #444; 
+        .card:hover {
+            transform: translateY(-5px);
         }
-        .form-select, .form-control { 
-            border-radius: 5px; 
-            border: 1px solid #ccc; 
-            padding: 8px; 
+        .card h3 {
+            color: #2c3e50;
+            font-weight: 600;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
         }
-        .form-select:focus, .form-control:focus { 
-            border-color: #007bff; 
-            box-shadow: 0 0 3px rgba(0, 123, 255, 0.3); 
+        .form-label {
+            font-weight: 500;
+            color: #444;
+            font-size: 0.95rem;
         }
-        .btn-primary { 
-            background: #007bff; 
-            border: none; 
-            border-radius: 8px; 
-            padding: 8px 20px; 
-            transition: background 0.3s ease; 
+        .form-select, .form-control {
+            border-radius: 10px;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
         }
-        .btn-primary:hover { 
-            background: #0056b3; 
+        .form-select:focus, .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            background: #fff;
         }
-        .btn-success { 
-            background: #28a745; 
-            border: none; 
-            border-radius: 5px; 
-            padding: 5px 15px; 
-            color: #fff; 
+        .btn-primary {
+            background: #007bff;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
-        .btn-danger { 
-            background: #e74c3c; 
-            border: none; 
-            border-radius: 5px; 
-            padding: 5px 15px; 
-            color: #fff; 
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: scale(1.05);
         }
-        .table { 
-            border-radius: 5px; 
-            overflow: hidden; 
-            background: #fff; 
+        .btn-success {
+            background: #28a745;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #fff;
+            transition: all 0.3s ease;
         }
-        .table thead th { 
-            background: #003087; 
-            color: #fff; 
-            text-align: center; 
-            padding: 12px; 
+        .btn-success:hover {
+            background: #218838;
+            transform: scale(1.05);
         }
-        .table tbody tr:hover { 
-            background: #f9f9f9; 
+        .btn-danger {
+            background: #e74c3c;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #fff;
+            transition: all 0.3s ease;
         }
-        .table td { 
-            vertical-align: middle; 
-            text-align: center; 
+        .btn-danger:hover {
+            background: #c0392b;
+            transform: scale(1.05);
         }
-        .total-count { 
-            font-size: 1.1rem; 
-            color: #333; 
-            margin-bottom: 10px; 
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
         }
-        .img-thumbnail { 
-            max-width: 100px; 
-            max-height: 100px; 
-            object-fit: cover; 
-            cursor: pointer; 
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: scale(1.05);
         }
-        .modal-content { 
-            border-radius: 10px; 
+        .btn-info {
+            background: #17a2b8;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #fff;
+            transition: all 0.3s ease;
         }
-        .modal-header { 
-            background: #007bff; 
-            color: #fff; 
-            border-radius: 10px 10px 0 0; 
+        .btn-info:hover {
+            background: #138496;
+            transform: scale(1.05);
+        }
+        .table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            min-width: 900px;
+        }
+        .table thead th {
+            background: #003087;
+            color: #fff;
+            text-align: center;
+            padding: 15px 20px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .table tbody tr {
+            transition: background 0.2s ease;
+        }
+        .table tbody tr:hover {
+            background: #f1f8ff;
+        }
+        .table td {
+            vertical-align: middle;
+            text-align: center;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            word-break: break-word;
+        }
+        .table th:nth-child(1), .table td:nth-child(1) { /* ชื่อ-นามสกุล */
+            min-width: 150px;
+        }
+        .table th:nth-child(2), .table td:nth-child(2) { /* จังหวัด */
+            min-width: 100px;
+        }
+        .table th:nth-child(3), .table td:nth-child(3) { /* อำเภอ */
+            min-width: 100px;
+        }
+        .table th:nth-child(4), .table td:nth-child(4) { /* สถานที่ */
+            min-width: 120px;
+        }
+        .table th:nth-child(5), .table td:nth-child(5) { /* ข้อมูลเพิ่มเติม */
+            min-width: 120px;
+        }
+        .table th:nth-child(6), .table td:nth-child(6) { /* สถานะ */
+            min-width: 200px;
+        }
+        .table th:nth-child(7), .table td:nth-child(7) { /* จัดการ */
+            min-width: 100px;
+        }
+        .total-count {
+            font-size: 1.1rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        .search-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .search-section:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        .search-container {
+            margin-bottom: 20px;
+        }
+        .search-container .form-control {
+            border-radius: 25px;
+            padding: 12px 20px 12px 45px;
+            border: 1px solid #ced4da;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+        .search-container .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+        }
+        .search-input-group {
+            position: relative;
+        }
+        .search-input-group .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            z-index: 10;
+            font-size: 1.1rem;
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .filter-row .col-md-3 {
+            flex: 1;
+            min-width: 200px;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        .img-preview {
+            max-width: 100%;
+            max-height: 300px;
+            width: 300px;
+            height: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 2px solid #007bff;
+        }
+        .modal-dialog {
+            max-width: 600px;
+            margin: 1.75rem auto;
+        }
+        .modal-content {
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            background: #007bff;
+            color: #fff;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            padding: 15px;
+        }
+        .modal-title {
+            font-weight: 600;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .modal-body p {
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .modal-body strong {
+            color: #2c3e50;
+        }
+        .modal-footer {
+            border-top: none;
+            padding: 10px 20px;
+        }
+        .alert-info {
+            background-color: #e7f3ff;
+            border-color: #b6d4fe;
+            color: #0c5460;
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .alert-info ul {
+            margin: 0;
+            padding-left: 15px;
+        }
+        .alert-info li {
+            margin-bottom: 3px;
+            font-size: 1rem;
         }
         @media (max-width: 768px) {
-            .content { 
-                margin-left: 250px; 
-                padding: 15px; 
+            .content {
+                margin-left: 0;
+                padding: 15px;
             }
-            .sidebar { 
-                position: fixed; 
-                z-index: 1000; 
-                height: 100%; 
+            .sidebar {
+                position: fixed;
+                z-index: 1000;
+                height: 100%;
+            }
+            .filter-row {
+                flex-direction: column;
+            }
+            .action-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .action-buttons .btn {
+                width: 100%;
+            }
+            .header-title {
+                font-size: 1.5rem;
+            }
+            .table-container {
+                margin-left: -15px;
+                margin-right: -15px;
+            }
+            .table thead th {
+                padding: 10px 15px;
+                font-size: 0.85rem;
+            }
+            .table td {
+                padding: 8px 15px;
+                font-size: 0.85rem;
+            }
+            .modal-dialog {
+                max-width: 90%;
+                margin: 1rem auto;
+            }
+            .modal-content {
+                max-height: 90vh;
+            }
+            .img-preview {
+                width: 250px;
+                max-height: 250px;
+            }
+            .modal-body p {
+                font-size: 0.9rem;
+            }
+            .alert-info li {
+                font-size: 0.95rem;
             }
         }
     </style>
@@ -203,115 +384,108 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">จัดการการลงทะเบียน</h2>
+            <h2 class="header-title">จัดการการลงทะเบียน</h2>
 
-            <div class="card mb-4">
-                <h3 class="mb-3">ค้นหาการลงทะเบียน</h3>
-                <form method="get" action="">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label for="search" class="form-label">ค้นหา</label>
-                            <input type="text" name="search" id="search" class="form-control" 
-                                value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>" 
-                                placeholder="กรอกข้อมูลเพื่อค้นหา">
-                        </div>
-                        <div class="col-md-4">
-                            <label for="payment_status" class="form-label">สถานะการชำระเงิน</label>
-                            <select name="payment_status" id="payment_status" class="form-select">
-                                <option value="">ทั้งหมด</option>
-                                <option value="Pending Confirmation" <?= isset($_GET['payment_status']) && $_GET['payment_status'] == 'Pending Confirmation' ? 'selected' : '' ?>>Pending Confirmation</option>
-                                <option value="Paid" <?= isset($_GET['payment_status']) && $_GET['payment_status'] == 'Paid' ? 'selected' : '' ?>>Paid</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="province" class="form-label">จังหวัด</label>
-                            <select name="province" id="province" class="form-select" onchange="loadAmphur()">
-                                <option value="">ทั้งหมด</option>
-                                <?php
-                                $provinceQuery = $conn->query("SELECT * FROM province");
-                                while ($province = $provinceQuery->fetch(PDO::FETCH_ASSOC)): ?>
-                                    <option value="<?= $province['PROVINCE_ID'] ?>" <?= isset($_GET['province']) && $_GET['province'] == $province['PROVINCE_ID'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($province['PROVINCE_NAME']) ?>
-                                    </option>
-                                <?php endwhile; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="amphur" class="form-label">อำเภอ</label>
-                            <select name="amphur" id="amphur" class="form-select" onchange="loadLocation()">
-                                <option value="">ทั้งหมด</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="location" class="form-label">จุดขึ้นรถ</label>
-                            <select name="location" id="location" class="form-select">
-                                <option value="">ทั้งหมด</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search me-2"></i>ค้นหา</button>
-                        </div>
+            <!-- แสดงข้อความแจ้งเตือน -->
+            <?php if (isset($_SESSION['success'])) { ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            text: '<?php echo $_SESSION['success']; ?>',
+                            confirmButtonText: 'ตกลง',
+                            allowOutsideClick: false,
+                            focusConfirm: false
+                        });
+                    });
+                </script>
+                <?php unset($_SESSION['success']); ?>
+            <?php } elseif (isset($_SESSION['error'])) { ?>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ข้อผิดพลาด',
+                            text: '<?php echo $_SESSION['error']; ?>',
+                            confirmButtonText: 'ตกลง',
+                            allowOutsideClick: false,
+                            focusConfirm: false
+                        });
+                    });
+                </script>
+                <?php unset($_SESSION['error']); ?>
+            <?php } ?>
+
+            <!-- ส่วนที่ 1: ฟอร์มค้นหา -->
+            <div class="card mb-4 search-section">
+                <h3 class="mb-3">ตัวกรองข้อมูลการลงทะเบียน</h3>
+                <div class="search-container">
+                    <label for="search_input" class="form-label">ค้นหาการลงทะเบียน</label>
+                    <div class="search-input-group">
+                        <span class="search-icon"><i class="fas fa-search"></i></span>
+                        <input type="text" id="search_input" class="form-control" placeholder="ค้นหา: ชื่อ, นามสกุล, สถานที่, วันที่ลงทะเบียน">
                     </div>
-                </form>
+                </div>
+                <div class="filter-row">
+                    <div class="col-md-3 col-12">
+                        <label for="payment_status_filter" class="form-label">สถานะการชำระเงิน</label>
+                        <select id="payment_status_filter" class="form-select">
+                            <option value="">-- แสดงทั้งหมด --</option>
+                            <option value="Pending Confirmation">Pending Confirmation</option>
+                            <option value="Paid">Paid</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-12">
+                        <label for="province_filter" class="form-label">จังหวัด</label>
+                        <select id="province_filter" class="form-select" onchange="loadAmphur()">
+                            <option value="">-- แสดงทั้งหมด --</option>
+                            <?php foreach ($provinces as $province): ?>
+                                <option value="<?php echo $province['PROVINCE_ID']; ?>">
+                                    <?php echo htmlspecialchars($province['PROVINCE_NAME']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-12">
+                        <label for="amphur_filter" class="form-label">อำเภอ</label>
+                        <select id="amphur_filter" class="form-select" onchange="loadLocation()">
+                            <option value="">-- แสดงทั้งหมด --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 col-12">
+                        <label for="location_filter" class="form-label">จุดขึ้นรถ</label>
+                        <select id="location_filter" class="form-select">
+                            <option value="">-- แสดงทั้งหมด --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                        <i class="fas fa-undo me-2"></i>เคลียร์ฟิลเตอร์
+                    </button>
+                </div>
             </div>
 
+            <!-- ส่วนที่ 2: รายการการลงทะเบียน -->
             <div class="card mb-4">
-                <h3 class="mb-3">รายการการลงทะเบียน</h3>
-                <div class="table-responsive">
-                    <div class="total-count">จำนวนการลงทะเบียนทั้งหมด: <?php echo count($registrations); ?> รายการ</div>
+                <h3 class="mb-3">รายการการลงทะเบียนทั้งหมด</h3>
+                <div class="total-count">จำนวนรายการทั้งหมด: <span id="totalItems">0</span></div>
+                <div class="table-container">
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>ID</th>
                                 <th>ชื่อ-นามสกุล</th>
-                                <th>วันที่ลงทะเบียน</th>
-                                <th>จำนวนวัน</th>
-                                <th>ราคารวม</th>
                                 <th>จังหวัด</th>
                                 <th>อำเภอ</th>
                                 <th>สถานที่</th>
-                                <th>ใบเสร็จ</th>
+                                <th>ข้อมูลเพิ่มเติม</th>
                                 <th>สถานะ</th>
                                 <th>จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <?php foreach ($registrations as $row): ?>
-                                <tr>
-                                    <td><?= $row['id'] ?></td>
-                                    <td><?= htmlspecialchars($row['stu_name'] . ' ' . $row['stu_lastname']) ?></td>
-                                    <td><?= date("d/m/Y", strtotime($row['created_at'])) ?></td>
-                                    <td><?= htmlspecialchars($row['schedule_num_of_days']) ?> วัน<br><small>(<?= htmlspecialchars($row['available_dates']) ?>)</small></td>
-                                    <td><?= number_format($row['total_price'], 2) ?> ฿</td>
-                                    <td><?= htmlspecialchars($row['PROVINCE_NAME']) ?: '-' ?></td>
-                                    <td><?= htmlspecialchars($row['AMPHUR_NAME']) ?: '-' ?></td>
-                                    <td><?= htmlspecialchars($row['location']) ?: '-' ?></td>
-                                    <td>
-                                        <?php if (!empty($row['payment_receipt_image'])): ?>
-                                            <img src="../Student/booking/<?= htmlspecialchars($row['payment_receipt_image']) ?>" 
-                                                 class="img-thumbnail" 
-                                                 onclick="openImagePreview('../Student/booking/<?= htmlspecialchars($row['payment_receipt_image']) ?>')">
-                                        <?php else: ?>
-                                            <span class="text-muted">ไม่มี</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <form method="post" action="enrollment_update.php" class="d-flex align-items-center">
-                                            <input type="hidden" name="id" value="<?= $row['id'] ?>">
-                                            <select name="payment_status" class="form-select form-select-sm me-2">
-                                                <option value="Pending Confirmation" <?= $row['payment_status'] == 'Pending Confirmation' ? 'selected' : '' ?>>Pending Confirmation</option>
-                                                <option value="Paid" <?= $row['payment_status'] == 'Paid' ? 'selected' : '' ?>>Paid</option>
-                                            </select>
-                                            <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check"></i></button>
-                                        </form>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="<?= $row['id'] ?>">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                        <tbody id="registrationTable">
+                            <tr><td colspan="7" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -319,110 +493,360 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+    <!-- Modal แสดงข้อมูลเพิ่มเติม -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="imagePreviewModalLabel">ดูตัวอย่างใบเสร็จ</h5>
+                    <h5 class="modal-title" id="detailsModalLabel">ข้อมูลเพิ่มเติม</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <img id="previewImage" src="" alt="Preview Image" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+                <div class="modal-body">
+                    <p><strong>วันที่ลงทะเบียน:</strong> <span id="modalCreatedAt"></span></p>
+                    <p><strong>จำนวนวัน:</strong> <span id="modalNumOfDays"></span></p>
+                    <p><strong>วันที่ขึ้นรถ:</strong> <span id="modalAvailableDates"></span></p>
+                    <p><strong>ราคารวม:</strong> <span id="modalTotalPrice"></span></p>
+                    <p><strong>ใบเสร็จ:</strong></p>
+                    <div id="modalReceiptImage" class="text-center"></div>
+                    <div class="alert alert-info mt-3">
+                        <strong>คำแนะนำการสแกน QR Code:</strong>
+                        <ul>
+                            <li>หยิบมือถือของคุณและเปิดแอปธนาคาร (เช่น K PLUS, SCB EASY)</li>
+                            <li>ใช้ฟีเจอร์ "สแกน QR Code" ในแอปเพื่อสแกน QR Code บนใบเสร็จด้านบน</li>
+                            <li>ตรวจสอบรายละเอียดการโอน เช่น จำนวนเงิน วันที่ และเลขที่บัญชี</li>
+                            <li>หากสแกนแล้วไม่พบข้อมูล หรือข้อมูลไม่ตรงกัน อาจเป็นใบเสร็จปลอม กรุณาติดต่อธนาคารทันที</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
     <script>
-        // Sidebar Toggle with localStorage
-        const sidebar = document.getElementById('sidebar');
-        const content = document.getElementById('content');
-        const closeBtn = document.getElementById('close-btn');
-        const openBtn = document.getElementById('open-btn');
+        let searchTimeout;
+        let lastScrollPosition = 0;
 
-        // โหลดสถานะ Sidebar จาก localStorage
-        window.addEventListener('load', () => {
+        // ฟังก์ชันเก็บตำแหน่ง scroll
+        function saveScrollPosition() {
+            lastScrollPosition = window.scrollY || window.pageYOffset;
+        }
+
+        // ฟังก์ชันเลื่อนกลับไปยังตำแหน่งเดิม
+        function restoreScrollPosition() {
+            window.scrollTo({
+                top: lastScrollPosition,
+                behavior: 'instant'
+            });
+        }
+
+        // โหลดข้อมูลการลงทะเบียน
+        function loadRegistrations() {
+            saveScrollPosition(); // บันทึกตำแหน่ง scroll ก่อนโหลดข้อมูล
+
+            const search = $('#search_input').val();
+            const payment_status = $('#payment_status_filter').val();
+            const province = $('#province_filter').val();
+            const amphur = $('#amphur_filter').val();
+            const location = $('#location_filter').val();
+
+            $.ajax({
+                url: 'fetch_registrations.php',
+                type: 'POST',
+                data: {
+                    search: search,
+                    payment_status: payment_status,
+                    province: province,
+                    amphur: amphur,
+                    location: location
+                },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: data.error,
+                            confirmButtonText: 'ตกลง',
+                            allowOutsideClick: false,
+                            focusConfirm: false,
+                            willClose: () => {
+                                restoreScrollPosition();
+                            }
+                        });
+                        $('#registrationTable').html('<tr><td colspan="7" class="text-center text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+                        $('#totalItems').text(0);
+                        restoreScrollPosition();
+                        return;
+                    }
+
+                    const registrations = data.registrations;
+                    const totalRows = data.totalRows;
+                    let html = '';
+
+                    if (registrations.length > 0) {
+                        registrations.forEach(reg => {
+                            html += `
+                                <tr>
+                                    <td>${reg.stu_name} ${reg.stu_lastname}</td>
+                                    <td>${reg.PROVINCE_NAME || '-'}</td>
+                                    <td>${reg.AMPHUR_NAME || '-'}</td>
+                                    <td>${reg.location || '-'}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-info btn-sm view-details-btn"
+                                            data-created-at="${new Date(reg.created_at).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' })}"
+                                            data-num-of-days="${reg.schedule_num_of_days} วัน"
+                                            data-available-dates="${reg.available_dates}"
+                                            data-total-price="${parseFloat(reg.total_price).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿"
+                                            data-receipt-image="${reg.payment_receipt_image ? '../Student/booking/' + reg.payment_receipt_image : ''}">
+                                            <i class="bi bi-eye"></i> ดู
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <form class="update-status-form d-flex align-items-center justify-content-center gap-2">
+                                            <input type="hidden" name="id" value="${reg.id}">
+                                            <select name="payment_status" class="form-select form-select-sm">
+                                                <option value="Pending Confirmation" ${reg.payment_status === 'Pending Confirmation' ? 'selected' : ''}>Pending Confirmation</option>
+                                                <option value="Paid" ${reg.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check"></i></button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="${reg.id}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>`;
+                        });
+                    } else {
+                        html = '<tr><td colspan="7" class="text-center text-muted">ไม่มีข้อมูลการลงทะเบียน</td></tr>';
+                    }
+
+                    $('#registrationTable').html(html);
+                    $('#totalItems').text(totalRows);
+                    setTimeout(() => {
+                        restoreScrollPosition();
+                    }, 100); // เพิ่มการหน่วงเวลาเล็กน้อยเพื่อให้แน่ใจว่าตารางโหลดเสร็จ
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถโหลดข้อมูลได้: ' + error,
+                        confirmButtonText: 'ตกลง',
+                        allowOutsideClick: false,
+                        focusConfirm: false,
+                        willClose: () => {
+                            restoreScrollPosition();
+                        }
+                    });
+                    $('#registrationTable').html('<tr><td colspan="7" class="text-center text-muted">ไม่สามารถโหลดข้อมูลได้</td></tr>');
+                    $('#totalItems').text(0);
+                    restoreScrollPosition();
+                }
+            });
+        }
+
+        // ฟังก์ชันเคลียร์ฟิลเตอร์
+        function clearFilters() {
+            saveScrollPosition();
+            $('#search_input').val('');
+            $('#payment_status_filter').val('');
+            $('#province_filter').val('');
+            $('#amphur_filter').val('');
+            $('#location_filter').val('');
+            loadAmphur();
+            loadLocation();
+            loadRegistrations();
+        }
+
+        // โหลดข้อมูลอำเภอ
+        function loadAmphur() {
+            const provinceID = $('#province_filter').val();
+            if (provinceID) {
+                $.ajax({
+                    url: 'get_amphur.php',
+                    type: 'POST',
+                    data: { province_id: provinceID },
+                    success: function(data) {
+                        $('#amphur_filter').html(data);
+                        loadLocation();
+                    }
+                });
+            } else {
+                $('#amphur_filter').html('<option value="">-- แสดงทั้งหมด --</option>');
+                $('#location_filter').html('<option value="">-- แสดงทั้งหมด --</option>');
+            }
+        }
+
+        // โหลดข้อมูลจุดขึ้นรถ
+        function loadLocation() {
+            const provinceID = $('#province_filter').val();
+            const amphurID = $('#amphur_filter').val();
+            if (provinceID && amphurID) {
+                $.ajax({
+                    url: 'get_location.php',
+                    type: 'GET',
+                    data: { province_id: provinceID, hur_id: amphurID },
+                    success: function(data) {
+                        $('#location_filter').html(data);
+                    }
+                });
+            } else {
+                $('#location_filter').html('<option value="">-- แสดงทั้งหมด --</option>');
+            }
+        }
+
+        // เริ่มต้นหน้า
+        $(document).ready(function() {
+            // Sidebar Toggle with localStorage
             const sidebarState = localStorage.getItem('sidebarState');
             if (sidebarState === 'closed') {
-                sidebar.classList.add('closed');
-                content.classList.add('closed');
-                openBtn.style.display = 'block';
+                $('.sidebar').addClass('closed');
+                $('.content').addClass('closed');
+                $('#open-btn').show();
             }
-        });
 
-        // ซ่อน Sidebar
-        closeBtn.addEventListener('click', () => {
-            sidebar.classList.add('closed');
-            content.classList.add('closed');
-            openBtn.style.display = 'block';
-            localStorage.setItem('sidebarState', 'closed');
-        });
+            $('#close-btn').on('click', function() {
+                $('.sidebar').addClass('closed');
+                $('.content').addClass('closed');
+                $('#open-btn').show();
+                localStorage.setItem('sidebarState', 'closed');
+            });
 
-        // เปิด Sidebar
-        openBtn.addEventListener('click', () => {
-            sidebar.classList.remove('closed');
-            content.classList.remove('closed');
-            openBtn.style.display = 'none';
-            localStorage.setItem('sidebarState', 'open');
-        });
+            $('#open-btn').on('click', function() {
+                $('.sidebar').removeClass('closed');
+                $('.content').removeClass('closed');
+                $('#open-btn').hide();
+                localStorage.setItem('sidebarState', 'open');
+            });
 
-        function openImagePreview(imagePath) {
-            document.getElementById('previewImage').src = imagePath;
-            const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
-            imagePreviewModal.show();
-        }
+            // โหลดข้อมูลเริ่มต้น
+            loadRegistrations();
 
-        function loadAmphur() {
-            var provinceID = document.getElementById('province').value;
-            if (provinceID) {
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', 'get_amphur.php', true);
-                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        document.getElementById('amphur').innerHTML = xhr.responseText;
-                        loadLocation(); // เรียก loadLocation เพื่อโหลดจุดขึ้นรถหลังจากโหลดอำเภอ
+            // ค้นหาแบบเรียลไทม์เมื่อพิมพ์
+            $('#search_input').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadRegistrations();
+                }, 300);
+            });
+
+            // ค้นหาแบบเรียลไทม์เมื่อเปลี่ยนตัวกรอง
+            $('#payment_status_filter, #province_filter, #amphur_filter, #location_filter').on('change', function() {
+                loadRegistrations();
+            });
+
+            // แสดงข้อมูลเพิ่มเติมใน Modal
+            $(document).on('click', '.view-details-btn', function() {
+                saveScrollPosition();
+                const createdAt = $(this).data('created-at');
+                const numOfDays = $(this).data('num-of-days');
+                const availableDates = $(this).data('available-dates');
+                const totalPrice = $(this).data('total-price');
+                const receiptImage = $(this).data('receipt-image');
+
+                $('#modalCreatedAt').text(createdAt);
+                $('#modalNumOfDays').text(numOfDays);
+                $('#modalAvailableDates').text(availableDates);
+                $('#modalTotalPrice').text(totalPrice);
+
+                if (receiptImage) {
+                    $('#modalReceiptImage').html(`<img src="${receiptImage}" class="img-preview" alt="ใบเสร็จ">`);
+                } else {
+                    $('#modalReceiptImage').html('<p class="text-muted">ไม่มีใบเสร็จ</p>');
+                }
+
+                const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+                detailsModal.show();
+            });
+
+            // อัปเดตสถานะการชำระเงิน
+            $(document).on('submit', '.update-status-form', function(e) {
+                e.preventDefault();
+                saveScrollPosition(); // บันทึกตำแหน่ง scroll
+
+                const formData = new FormData(this);
+
+                Swal.fire({
+                    title: 'ยืนยันการแก้ไข?',
+                    text: 'คุณต้องการบันทึกการแก้ไขสถานะการชำระเงินนี้หรือไม่?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: 'ยืนยัน',
+                    cancelButtonText: 'ยกเลิก',
+                    allowOutsideClick: false,
+                    focusConfirm: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: 'enrollment_update.php',
+                            type: 'POST',
+                            data: formData,
+                            contentType: false,
+                            processData: false,
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'สำเร็จ!',
+                                        text: response.message,
+                                        confirmButtonText: 'ตกลง',
+                                        allowOutsideClick: false,
+                                        focusConfirm: false,
+                                        willClose: () => {
+                                            loadRegistrations();
+                                            setTimeout(() => {
+                                                restoreScrollPosition();
+                                            }, 150); // เพิ่มการหน่วงเวลาเล็กน้อยหลังจาก SweetAlert ปิด
+                                        }
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'เกิดข้อผิดพลาด!',
+                                        text: response.message,
+                                        confirmButtonText: 'ตกลง',
+                                        allowOutsideClick: false,
+                                        focusConfirm: false,
+                                        willClose: () => {
+                                            restoreScrollPosition();
+                                        }
+                                    });
+                                }
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เกิดข้อผิดพลาด!',
+                                    text: 'ไม่สามารถอัปเดตสถานะได้: ' + (xhr.responseJSON?.message || xhr.responseText),
+                                    confirmButtonText: 'ตกลง',
+                                    allowOutsideClick: false,
+                                    focusConfirm: false,
+                                    willClose: () => {
+                                        restoreScrollPosition();
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        restoreScrollPosition();
                     }
-                };
-                xhr.send('province_id=' + provinceID);
-            } else {
-                document.getElementById('amphur').innerHTML = '<option value="">ทั้งหมด</option>';
-                document.getElementById('location').innerHTML = '<option value="">ทั้งหมด</option>';
-            }
-        }
+                });
+            });
 
-        function loadLocation() {
-            var provinceID = document.getElementById('province').value;
-            var amphurID = document.getElementById('amphur').value;
-            if (provinceID && amphurID) {
-                var xhr = new XMLHttpRequest();
-                xhr.open('GET', 'get_location.php?province_id=' + provinceID + '&hur_id=' + amphurID, true);
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        document.getElementById('location').innerHTML = xhr.responseText;
-                    }
-                };
-                xhr.send();
-            } else {
-                document.getElementById('location').innerHTML = '<option value="">ทั้งหมด</option>';
-            }
-        }
-
-        // โหลดข้อมูลอำเภอและจุดขึ้นรถเมื่อหน้าโหลด
-        document.addEventListener('DOMContentLoaded', function() {
-            <?php if (isset($_GET['province']) && $_GET['province'] !== ''): ?>
-                loadAmphur();
-            <?php endif; ?>
-            <?php if (isset($_GET['amphur']) && $_GET['amphur'] !== ''): ?>
-                loadLocation();
-            <?php endif; ?>
-        });
-
-        // SweetAlert2 สำหรับการลบ
-        $(document).ready(function() {
-            $('.delete-btn').on('click', function() {
-                var deleteId = $(this).data('id');
+            // ลบการลงทะเบียน
+            $(document).on('click', '.delete-btn', function() {
+                saveScrollPosition();
+                const deleteId = $(this).data('id');
                 Swal.fire({
                     title: 'คุณแน่ใจหรือไม่?',
                     text: 'คุณต้องการลบข้อมูลการลงทะเบียนนี้หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้!',
@@ -431,22 +855,62 @@ $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'ยืนยัน',
-                    cancelButtonText: 'ยกเลิก'
+                    cancelButtonText: 'ยกเลิก',
+                    allowOutsideClick: false,
+                    focusConfirm: false
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
                             url: 'enrollment_delete.php',
                             type: 'POST',
                             data: { id: deleteId, delete: true },
+                            dataType: 'json',
                             success: function(response) {
-                                Swal.fire('สำเร็จ!', 'ลบข้อมูลการลงทะเบียนเรียบร้อยแล้ว', 'success').then(() => {
-                                    window.location.reload();
-                                });
+                                if (response.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'สำเร็จ!',
+                                        text: response.message,
+                                        confirmButtonText: 'ตกลง',
+                                        allowOutsideClick: false,
+                                        focusConfirm: false,
+                                        willClose: () => {
+                                            loadRegistrations();
+                                            setTimeout(() => {
+                                                restoreScrollPosition();
+                                            }, 150);
+                                        }
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'เกิดข้อผิดพลาด!',
+                                        text: response.message,
+                                        confirmButtonText: 'ตกลง',
+                                        allowOutsideClick: false,
+                                        focusConfirm: false,
+                                        willClose: () => {
+                                            restoreScrollPosition();
+                                        }
+                                    });
+                                }
                             },
                             error: function(xhr) {
-                                Swal.fire('เกิดข้อผิดพลาด!', 'ไม่สามารถลบข้อมูลได้: ' + xhr.responseText, 'error');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'เกิดข้อผิดพลาด!',
+                                    text: 'ไม่สามารถลบข้อมูลได้: ' + (xhr.responseJSON?.message || xhr.responseText),
+                                    confirmButtonText: 'ตกลง',
+                                    allowOutsideClick: false,
+                                    focusConfirm: false,
+                                    willClose: () => {
+                                        restoreScrollPosition();
+                                    }
+                                });
                             }
                         });
+                    } else {
+                        restoreScrollPosition();
                     }
                 });
             });

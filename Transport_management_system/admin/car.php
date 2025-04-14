@@ -394,7 +394,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="queue_filter" class="form-label">สถานะคิวรถ</label>
                         <select name="queue_filter" id="queue_filter" class="form-select">
-                            <option value="">ทั้งหมด</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <option value="มีคิวรถ">มีคิวรถ</option>
                             <option value="ไม่มีคิวรถ">ไม่มีคิวรถ</option>
                         </select>
@@ -402,7 +402,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="status_filter" class="form-label">สถานะ</label>
                         <select name="status_filter" id="status_filter" class="form-select">
-                            <option value="">ทั้งหมด</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <option value="available">พร้อมใช้งาน</option>
                             <option value="unavailable">ไม่พร้อมใช้งาน</option>
                         </select>

@@ -376,7 +376,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="province_filter" class="form-label">จังหวัด</label>
                         <select name="province_filter" id="province_filter" class="form-select" onchange="fetchAmphurs(this.value, 'filter')">
-                            <option value="">เลือกจังหวัด</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <?php foreach ($provinces as $province) { ?>
                                 <option value="<?php echo $province['PROVINCE_ID']; ?>">
                                     <?php echo htmlspecialchars($province['PROVINCE_NAME']); ?>
@@ -387,7 +387,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="amphur_filter" class="form-label">อำเภอ</label>
                         <select name="amphur_filter" id="amphur_filter" class="form-select">
-                            <option value="">เลือกอำเภอ</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                         </select>
                     </div>
                 </div>

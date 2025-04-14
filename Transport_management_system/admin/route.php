@@ -395,7 +395,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="province_filter" class="form-label">จังหวัด</label>
                         <select name="province_filter" id="province_filter" class="form-select">
-                            <option value="">ทุกจังหวัด</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <?php foreach ($provinces as $province) { ?>
                                 <option value="<?php echo $province['PROVINCE_ID']; ?>">
                                     <?php echo $province['PROVINCE_NAME']; ?>
@@ -406,13 +406,13 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="amphur_filter" class="form-label">อำเภอ</label>
                         <select name="amphur_filter" id="amphur_filter" class="form-select">
-                            <option value="">ทุกอำเภอ</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                         </select>
                     </div>
                     <div class="col-md-3 col-12">
                         <label for="location_filter" class="form-label">สถานที่</label>
                         <select name="location_filter" id="location_filter" class="form-select">
-                            <option value="">ทุกสถานที่</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                         </select>
                     </div>
                 </div>

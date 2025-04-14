@@ -334,7 +334,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="filter_year" class="form-label">เลือกปี</label>
                         <select id="filter_year" class="form-select">
-                            <option value="">เลือกปี</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <?php foreach ($years as $year) { ?>
                                 <option value="<?php echo $year; ?>"><?php echo $year; ?></option>
                             <?php } ?>
@@ -343,7 +343,7 @@ try {
                     <div class="col-md-3 col-12">
                         <label for="filter_month" class="form-label">เลือกเดือน</label>
                         <select id="filter_month" class="form-select">
-                            <option value="">เลือกเดือน</option>
+                            <option value="">-- แสดงทั้งหมด --</option>
                             <?php for ($m = 1; $m <= 12; $m++) { ?>
                                 <option value="<?php echo $m; ?>"><?php echo getThaiMonth($m); ?></option>
                             <?php } ?>
