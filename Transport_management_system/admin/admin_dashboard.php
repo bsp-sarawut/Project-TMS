@@ -44,11 +44,34 @@ $registrations_today = fetchSingleResult(
     "SELECT COUNT(*) AS registrations_today FROM transport_registration WHERE DATE(created_at) = CURDATE()"
 )['registrations_today'] ?? 0;
 
-// การแจ้งเตือน
+// การแจ้งเตือนสำหรับ Pending Confirmations
 $pending_confirmations = fetchSingleResult(
     $conn,
     "SELECT COUNT(*) AS pending_confirmations FROM transport_registration WHERE payment_status = 'Pending Confirmation'"
 )['pending_confirmations'] ?? 0;
+
+// ตรวจสอบการลงทะเบียนใหม่
+$latest_registration = fetchSingleResult(
+    $conn,
+    "SELECT MAX(created_at) AS latest_timestamp FROM transport_registration"
+)['latest_timestamp'] ?? '0000-00-00 00:00:00';
+
+$new_registrations_count = 0;
+if (!isset($_SESSION['last_checked_timestamp'])) {
+    // ถ้ายังไม่เคยตรวจสอบมาก่อน ให้ตั้งค่าเริ่มต้น
+    $_SESSION['last_checked_timestamp'] = $latest_registration;
+} else {
+    // เปรียบเทียบ timestamp ล่าสุดกับที่เก็บไว้
+    if ($latest_registration > $_SESSION['last_checked_timestamp']) {
+        $new_registrations_count = fetchSingleResult(
+            $conn,
+            "SELECT COUNT(*) AS new_count FROM transport_registration WHERE created_at > ?",
+            [$_SESSION['last_checked_timestamp']]
+        )['new_count'] ?? 0;
+        // อัปเดต timestamp ล่าสุดที่ตรวจสอบ
+        $_SESSION['last_checked_timestamp'] = $latest_registration;
+    }
+}
 
 // ดึงข้อมูล 5 อันดับจังหวัดที่มีการลงทะเบียนมากที่สุด
 try {
@@ -151,6 +174,7 @@ try {
             font-weight: 600;
             color: #212529;
             margin-bottom: 20px;
+            margin-top: 5px;
         }
         .card {
             background: #ffffff;
@@ -215,6 +239,7 @@ try {
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             animation: fadeIn 0.5s ease-in-out;
             height: 350px;
+            margin-bottom: 17px;
         }
         .table-container {
             background: #ffffff;
@@ -222,6 +247,7 @@ try {
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             animation: fadeIn 0.5s ease-in-out;
+            margin-bottom: 17px;
         }
         .table {
             background: #ffffff;
@@ -267,9 +293,15 @@ try {
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             animation: fadeIn 0.5s ease-in-out;
         }
+        .alert-card.success {
+            border-left: 5px solid #28a745;
+        }
         .alert-card i {
             font-size: 1.5rem;
             color: #dc3545;
+        }
+        .alert-card.success i {
+            color: #28a745;
         }
         .alert-card p {
             margin: 0;
@@ -283,12 +315,6 @@ try {
         }
         .alert-card a:hover {
             color: #1557b0;
-        }
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1050;
         }
         .refresh-section {
             display: flex;
@@ -336,26 +362,28 @@ try {
     <!-- Sidebar -->
     <?php include('sidebar.php'); ?>
 
-    <!-- Toast Notification -->
-    <div class="toast-container">
-        <?php if ($pending_confirmations > 0): ?>
-            <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000">
-                <div class="toast-header">
-                    <i class="fas fa-exclamation-circle me-2" style="color: #dc3545;"></i>
-                    <strong class="me-auto">การแจ้งเตือน</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body">
-                    คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน 
-                    <a href="pending_registrations.php">ดูรายละเอียด</a>
-                </div>
-            </div>
-        <?php endif; ?>
-    </div>
-
     <!-- Content -->
     <div class="content" id="content">
         <div class="container mt-4">
+            <!-- Inline Notifications -->
+            <?php if ($pending_confirmations > 0): ?>
+                <div class="alert-card">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <p>คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน 
+                        <a href="pending_registrations.php">ดูรายละเอียด</a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($new_registrations_count > 0): ?>
+                <div class="alert-card success">
+                    <i class="fas fa-bell"></i>
+                    <p>มีการลงทะเบียนใหม่ <strong><?php echo $new_registrations_count; ?></strong> รายการ 
+                        <a href="registrations_today.php">ดูรายละเอียด</a>
+                    </p>
+                </div>
+            <?php endif; ?>
+
             <!-- Refresh Section -->
             <div class="refresh-section">
                 <span class="timer" id="refresh-timer">รีเฟรชใน 60 วินาที</span>
@@ -627,11 +655,6 @@ try {
         // Initialize Tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-        // Initialize Toasts
-        const toastElList = document.querySelectorAll('.toast');
-        const toastList = [...toastElList].map(toastEl => new bootstrap.Toast(toastEl));
-        toastList.forEach(toast => toast.show());
     </script>
 </body>
 </html>
