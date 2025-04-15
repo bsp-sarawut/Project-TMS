@@ -67,6 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['driver_id'])) {
         $currentDriver = $currentStmt->fetch(PDO::FETCH_ASSOC);
         $driver_image = $currentDriver['driver_image'];
 
+        // Hash รหัสผ่านก่อนบันทึก
+        $hashed_password = password_hash($driver_password, PASSWORD_DEFAULT);
+
         // ตรวจสอบและอัปเดตรูปภาพ
         if (isset($_FILES['driver_image']) && $_FILES['driver_image']['error'] == 0) {
             $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
@@ -117,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['driver_id'])) {
 
         $stmt = $conn->prepare($query);
         $stmt->bindParam(':driver_user', $driver_user);
-        $stmt->bindParam(':driver_password', $driver_password);
+        $stmt->bindParam(':driver_password', $hashed_password); // ใช้รหัสผ่านที่ hash แล้ว
         $stmt->bindParam(':driver_name', $driver_name);
         $stmt->bindParam(':driver_lastname', $driver_lastname);
         $stmt->bindParam(':driver_tel', $driver_tel);
