@@ -325,6 +325,24 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
             margin-bottom: 3px;
             font-size: 1rem;
         }
+        .pagination {
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .pagination .page-item .page-link {
+            border-radius: 8px;
+            margin: 0 5px;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        .pagination .page-item .page-link:hover {
+            background: #e9ecef;
+        }
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -489,6 +507,12 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                         </tbody>
                     </table>
                 </div>
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination">
+                        <!-- Pagination จะถูกโหลดด้วย AJAX -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -530,6 +554,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
     <script>
         let searchTimeout;
         let lastScrollPosition = 0;
+        let currentPage = 1;
 
         // ฟังก์ชันเก็บตำแหน่ง scroll
         function saveScrollPosition() {
@@ -545,7 +570,8 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
         }
 
         // โหลดข้อมูลการลงทะเบียน
-        function loadRegistrations() {
+        function loadRegistrations(page = 1) {
+            currentPage = page;
             saveScrollPosition(); // บันทึกตำแหน่ง scroll ก่อนโหลดข้อมูล
 
             const search = $('#search_input').val();
@@ -562,7 +588,8 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                     payment_status: payment_status,
                     province: province,
                     amphur: amphur,
-                    location: location
+                    location: location,
+                    page: page
                 },
                 dataType: 'json',
                 success: function(data) {
@@ -580,12 +607,14 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                         });
                         $('#registrationTable').html('<tr><td colspan="7" class="text-center text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
                         $('#totalItems').text(0);
+                        $('#pagination').html('');
                         restoreScrollPosition();
                         return;
                     }
 
                     const registrations = data.registrations;
                     const totalRows = data.totalRows;
+                    const totalPages = data.totalPages;
                     let html = '';
 
                     if (registrations.length > 0) {
@@ -629,6 +658,29 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
 
                     $('#registrationTable').html(html);
                     $('#totalItems').text(totalRows);
+
+                    // สร้าง pagination
+                    let paginationHtml = '';
+                    paginationHtml += `
+                        <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadRegistrations(${page - 1})" aria-label="Previous">
+                                <span aria-hidden="true">«</span>
+                            </a>
+                        </li>`;
+                    for (let i = 1; i <= totalPages; i++) {
+                        paginationHtml += `
+                            <li class="page-item ${page == i ? 'active' : ''}">
+                                <a class="page-link" href="javascript:void(0)" onclick="loadRegistrations(${i})">${i}</a>
+                            </li>`;
+                    }
+                    paginationHtml += `
+                        <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadRegistrations(${page + 1})" aria-label="Next">
+                                <span aria-hidden="true">»</span>
+                            </a>
+                        </li>`;
+                    $('#pagination').html(paginationHtml);
+
                     setTimeout(() => {
                         restoreScrollPosition();
                     }, 100); // เพิ่มการหน่วงเวลาเล็กน้อยเพื่อให้แน่ใจว่าตารางโหลดเสร็จ
@@ -647,6 +699,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                     });
                     $('#registrationTable').html('<tr><td colspan="7" class="text-center text-muted">ไม่สามารถโหลดข้อมูลได้</td></tr>');
                     $('#totalItems').text(0);
+                    $('#pagination').html('');
                     restoreScrollPosition();
                 }
             });
@@ -662,7 +715,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
             $('#location_filter').val('');
             loadAmphur();
             loadLocation();
-            loadRegistrations();
+            loadRegistrations(1);
         }
 
         // โหลดข้อมูลอำเภอ
@@ -733,13 +786,13 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
             $('#search_input').on('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    loadRegistrations();
+                    loadRegistrations(1);
                 }, 300);
             });
 
             // ค้นหาแบบเรียลไทม์เมื่อเปลี่ยนตัวกรอง
             $('#payment_status_filter, #province_filter, #amphur_filter, #location_filter').on('change', function() {
-                loadRegistrations();
+                loadRegistrations(1);
             });
 
             // แสดงข้อมูลเพิ่มเติมใน Modal
@@ -803,7 +856,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                                         allowOutsideClick: false,
                                         focusConfirm: false,
                                         willClose: () => {
-                                            loadRegistrations();
+                                            loadRegistrations(currentPage);
                                             setTimeout(() => {
                                                 restoreScrollPosition();
                                             }, 150); // เพิ่มการหน่วงเวลาเล็กน้อยหลังจาก SweetAlert ปิด
@@ -875,7 +928,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                                         allowOutsideClick: false,
                                         focusConfirm: false,
                                         willClose: () => {
-                                            loadRegistrations();
+                                            loadRegistrations(currentPage);
                                             setTimeout(() => {
                                                 restoreScrollPosition();
                                             }, 150);
