@@ -303,6 +303,28 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
             background: #e9ecef;
             font-weight: 500;
         }
+        .pagination {
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .pagination .page-item .page-link {
+            border-radius: 8px;
+            margin: 0 5px;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        .pagination .page-item .page-link:hover {
+            background: #e9ecef;
+        }
+        .badge.btn-secondary {
+            background: #dc3545; /* สีแดงสำหรับสถานะปิดงาน */
+            color: #fff;
+        }
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -511,6 +533,15 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                             <option value="">-- แสดงทั้งหมด --</option>
                         </select>
                     </div>
+                    <div class="col-md-3 col-12">
+                        <label for="status_filter" class="form-label">สถานะรถ</label>
+                        <select id="status_filter" class="form-select">
+                            <option value="">-- แสดงทั้งหมด --</option>
+                            <option value="ว่าง">ว่าง</option>
+                            <option value="ไม่ว่าง">ไม่ว่าง</option>
+                            <option value="ปิดงาน">ปิดงาน</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="action-buttons">
                     <button type="button" class="btn btn-secondary" onclick="clearFilters()">
@@ -541,6 +572,12 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                         </tbody>
                     </table>
                 </div>
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination">
+                        <!-- Pagination จะถูกโหลดด้วย AJAX -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -649,6 +686,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
     <script>
         let searchTimeout;
         let lastScrollPosition = 0;
+        let currentPage = 1;
 
         // ฟังก์ชันเก็บตำแหน่ง scroll
         function saveScrollPosition() {
@@ -664,7 +702,8 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
         }
 
         // โหลดข้อมูลคิวรถ
-        function loadQueues() {
+        function loadQueues(page = 1) {
+            currentPage = page;
             saveScrollPosition();
 
             const search = $('#search_input').val();
@@ -672,6 +711,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
             const province = $('#province_filter').val();
             const amphur = $('#amphur_filter').val();
             const location = $('#location_filter').val();
+            const status = $('#status_filter').val();
 
             $.ajax({
                 url: 'fetch_queues.php',
@@ -681,7 +721,9 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                     queue_date: queue_date,
                     province_id: province,
                     amphur_id: amphur,
-                    location: location
+                    location: location,
+                    status: status,
+                    page: page
                 },
                 dataType: 'json',
                 success: function(data) {
@@ -699,17 +741,26 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                         });
                         $('#queueTable').html('<tr><td colspan="7" class="text-center text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
                         $('#totalItems').text(0);
+                        $('#pagination').html('');
                         restoreScrollPosition();
                         return;
                     }
 
                     const queues = data.queues;
                     const totalRows = data.totalRows;
+                    const totalPages = data.totalPages;
                     let html = '';
 
                     if (queues.length > 0) {
                         queues.forEach(queue => {
-                            const statusClass = queue.status_car === 'ว่าง' ? 'btn-success' : 'btn-warning';
+                            let statusClass;
+                            if (queue.status_car === 'ปิดงาน') {
+                                statusClass = 'btn-secondary';
+                            } else if (queue.status_car === 'ว่าง') {
+                                statusClass = 'btn-success';
+                            } else {
+                                statusClass = 'btn-warning';
+                            }
                             html += `
                                 <tr>
                                     <td>${queue.queue_id}</td>
@@ -740,6 +791,29 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
 
                     $('#queueTable').html(html);
                     $('#totalItems').text(totalRows);
+
+                    // สร้าง pagination
+                    let paginationHtml = '';
+                    paginationHtml += `
+                        <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadQueues(${page - 1})" aria-label="Previous">
+                                <span aria-hidden="true">«</span>
+                            </a>
+                        </li>`;
+                    for (let i = 1; i <= totalPages; i++) {
+                        paginationHtml += `
+                            <li class="page-item ${page == i ? 'active' : ''}">
+                                <a class="page-link" href="javascript:void(0)" onclick="loadQueues(${i})">${i}</a>
+                            </li>`;
+                    }
+                    paginationHtml += `
+                        <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadQueues(${page + 1})" aria-label="Next">
+                                <span aria-hidden="true">»</span>
+                            </a>
+                        </li>`;
+                    $('#pagination').html(paginationHtml);
+
                     setTimeout(() => {
                         restoreScrollPosition();
                     }, 100);
@@ -758,6 +832,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                     });
                     $('#queueTable').html('<tr><td colspan="7" class="text-center text-muted">ไม่สามารถโหลดข้อมูลได้</td></tr>');
                     $('#totalItems').text(0);
+                    $('#pagination').html('');
                     restoreScrollPosition();
                 }
             });
@@ -771,9 +846,10 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
             $('#province_filter').val('');
             $('#amphur_filter').val('');
             $('#location_filter').val('');
+            $('#status_filter').val('');
             loadAmphur();
             loadLocation();
-            loadQueues();
+            loadQueues(1);
         }
 
         // โหลดข้อมูลอำเภอ
@@ -954,9 +1030,10 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                 dateFormat: "Y-m-d",
                 locale: "th",
                 onClose: function() {
-                    loadQueues();
+                    loadQueues(1);
                 }
             });
+
             // โหลดข้อมูลเริ่มต้น
             loadQueues();
 
@@ -964,13 +1041,13 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
             $('#search_input').on('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    loadQueues();
+                    loadQueues(1);
                 }, 300);
             });
 
             // ค้นหาแบบเรียลไทม์เมื่อเปลี่ยนตัวกรอง
-            $('#province_filter, #amphur_filter, #location_filter').on('change', function() {
-                loadQueues();
+            $('#province_filter, #amphur_filter, #location_filter, #status_filter').on('change', function() {
+                loadQueues(1);
             });
         });
     </script>
