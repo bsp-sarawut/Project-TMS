@@ -394,7 +394,7 @@ try {
             <div class="section-title">ภาพรวมระบบ</div>
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดนักเรียนทั้งหมด" onclick="window.location.href='students.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดนักเรียนทั้งหมด" onclick="window.location.href='#'">
                         <div class="card-header">
                             <i class="fas fa-users"></i> นักเรียนทั้งหมด
                         </div>
@@ -408,7 +408,7 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูนักเรียนที่กำลังใช้งาน" onclick="window.location.href='active_students.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูนักเรียนที่กำลังใช้งาน" onclick="window.location.href='#'">
                         <div class="card-header">
                             <i class="fas fa-user-check"></i> นักเรียนที่ Active
                         </div>
@@ -422,7 +422,7 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูการลงทะเบียนวันนี้" onclick="window.location.href='registrations_today.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูการลงทะเบียนวันนี้" onclick="window.location.href='enrollment.php'">
                         <div class="card-header">
                             <i class="fas fa-ticket-alt"></i> การลงทะเบียนวันนี้
                         </div>
@@ -441,7 +441,7 @@ try {
             <div class="section-title">ภาพรวมรถและคิว</div>
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดรถทั้งหมด" onclick="window.location.href='cars.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดรถทั้งหมด" onclick="window.location.href='car.php'">
                         <div class="card-header">
                             <i class="fas fa-bus"></i> รถทั้งหมด
                         </div>
@@ -455,7 +455,7 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรถที่พร้อมใช้งาน" onclick="window.location.href='available_cars.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรถที่พร้อมใช้งาน" onclick="window.location.href='car.php'">
                         <div class="card-header">
                             <i class="fas fa-check-circle"></i> รถที่พร้อมใช้งาน
                         </div>
@@ -469,7 +469,7 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูคิวที่รอดำเนินการ" onclick="window.location.href='pending_queues.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูคิวที่รอดำเนินการ" onclick="window.location.href='enrollment.php'">
                         <div class="card-header">
                             <i class="fas fa-clock"></i> คิวที่รอดำเนินการ
                         </div>

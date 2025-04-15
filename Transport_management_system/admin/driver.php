@@ -182,6 +182,24 @@ try {
             text-align: center;
             padding: 12px;
         }
+        .pagination {
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .pagination .page-item .page-link {
+            border-radius: 8px;
+            margin: 0 5px;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        .pagination .page-item .page-link:hover {
+            background: #e9ecef;
+        }
         .total-count {
             font-size: 1.1rem;
             color: #2c3e50;
@@ -425,6 +443,13 @@ try {
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="pagination">
+                        <!-- Pagination จะถูกโหลดด้วย AJAX -->
+                    </ul>
+                </nav>
             </div>
         </div>
     </div>
@@ -566,9 +591,11 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let searchTimeout;
+        let currentPage = 1;
 
         // โหลดข้อมูลคนขับ
-        function loadDrivers() {
+        function loadDrivers(page = 1) {
+            currentPage = page;
             const search = $('#search_input').val();
             const province_filter = $('#province_filter').val();
             const amphur_filter = $('#amphur_filter').val();
@@ -579,7 +606,8 @@ try {
                 data: {
                     search: search,
                     province_filter: province_filter,
-                    amphur_filter: amphur_filter
+                    amphur_filter: amphur_filter,
+                    page: page
                 },
                 dataType: 'json',
                 success: function(data) {
@@ -587,12 +615,14 @@ try {
                         Swal.fire('เกิดข้อผิดพลาด', data.error, 'error');
                         $('#driverTableBody').html('<tr><td colspan="8" class="text-center text-muted">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
                         $('#totalRows').text(0);
+                        $('#pagination').html('');
                         return;
                     }
 
                     const drivers = data.drivers;
                     const totalRows = data.totalRows;
-                    let index = 1;
+                    const totalPages = data.totalPages;
+                    let index = (page - 1) * 10 + 1;
                     let html = '';
 
                     if (drivers.length > 0) {
@@ -633,11 +663,34 @@ try {
 
                     $('#driverTableBody').html(html);
                     $('#totalRows').text(totalRows);
+
+                    // สร้าง pagination
+                    let paginationHtml = '';
+                    paginationHtml += `
+                        <li class="page-item ${page <= 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadDrivers(${page - 1})" aria-label="Previous">
+                                <span aria-hidden="true">«</span>
+                            </a>
+                        </li>`;
+                    for (let i = 1; i <= totalPages; i++) {
+                        paginationHtml += `
+                            <li class="page-item ${page == i ? 'active' : ''}">
+                                <a class="page-link" href="javascript:void(0)" onclick="loadDrivers(${i})">${i}</a>
+                            </li>`;
+                    }
+                    paginationHtml += `
+                        <li class="page-item ${page >= totalPages ? 'disabled' : ''}">
+                            <a class="page-link" href="javascript:void(0)" onclick="loadDrivers(${page + 1})" aria-label="Next">
+                                <span aria-hidden="true">»</span>
+                            </a>
+                        </li>`;
+                    $('#pagination').html(paginationHtml);
                 },
                 error: function(xhr, status, error) {
                     Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลได้: ' + error, 'error');
                     $('#driverTableBody').html('<tr><td colspan="8" class="text-center text-muted">ไม่สามารถโหลดข้อมูลได้</td></tr>');
                     $('#totalRows').text(0);
+                    $('#pagination').html('');
                 }
             });
         }
@@ -647,7 +700,7 @@ try {
             $('#search_input').val('');
             $('#province_filter').val('');
             $('#amphur_filter').html('<option value="">เลือกอำเภอ</option>');
-            loadDrivers();
+            loadDrivers(1);
         }
 
         // ดึงข้อมูลอำเภอเมื่อเลือกจังหวัด
@@ -709,13 +762,13 @@ try {
             $('#search_input').on('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
-                    loadDrivers();
+                    loadDrivers(1);
                 }, 300);
             });
 
             // เปลี่ยนตัวกรอง
             $('#province_filter, #amphur_filter').on('change', function() {
-                loadDrivers();
+                loadDrivers(1);
             });
 
             // SweetAlert สำหรับยืนยันการลบ
