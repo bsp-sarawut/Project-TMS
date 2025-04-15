@@ -66,17 +66,24 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             margin-left: 0; 
         }
         .card {
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             background: #fff;
-            padding: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: transform 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
         }
         .card h3 {
-            color: #333;
+            color: #2c3e50;
             font-weight: 600;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 5px;
-        }
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+}
         .form-label {
             font-weight: 500;
             color: #444;
