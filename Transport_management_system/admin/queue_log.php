@@ -416,6 +416,24 @@ try {
         .flatpickr-day.today {
             border-color: #007bff;
         }
+        .pagination {
+            justify-content: center;
+            margin-top: 25px;
+        }
+        .pagination .page-item .page-link {
+            border-radius: 8px;
+            margin: 0 5px;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        .pagination .page-item .page-link:hover {
+            background: #e9ecef;
+        }
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -543,9 +561,11 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/th.js"></script>
     <script>
         let searchTimeout;
+        let currentPage = 1;
 
         // ฟังก์ชันดึงข้อมูลคิว
-        function fetchQueues() {
+        function fetchQueues(page = 1) {
+            currentPage = page;
             const search = document.getElementById('search').value;
             const filter_date = document.getElementById('datePicker').value;
             const filter_province = document.getElementById('filterProvince').value;
@@ -560,13 +580,14 @@ try {
             });
 
             $.ajax({
-                url: 'fetch_log_queues.php', // เปลี่ยนชื่อไฟล์ที่นี่
+                url: 'fetch_log_queues.php',
                 method: 'POST',
                 data: {
                     search: search,
                     filter_date: filter_date,
                     filter_province: filter_province,
-                    filter_amphur: filter_amphur
+                    filter_amphur: filter_amphur,
+                    page: page
                 },
                 success: function(response) {
                     $('#queueResults').html(response);
@@ -596,7 +617,8 @@ try {
             document.getElementById('datePicker').value = '';
             document.getElementById('filterProvince').value = '';
             document.getElementById('filterAmphur').innerHTML = '<option value="">เลือกอำเภอ</option>';
-            fetchQueues();
+            currentPage = 1;
+            fetchQueues(1);
         }
 
         // Sidebar Toggle with localStorage
@@ -646,7 +668,8 @@ try {
                 }
             },
             onChange: function() {
-                fetchQueues();
+                currentPage = 1;
+                fetchQueues(1);
             }
         });
 
@@ -668,17 +691,22 @@ try {
                     amphurSelect.appendChild(option);
                 });
             }
-            fetchQueues();
+            currentPage = 1;
+            fetchQueues(1);
         });
 
         amphurSelect.addEventListener('change', function() {
-            fetchQueues();
+            currentPage = 1;
+            fetchQueues(1);
         });
 
         // การค้นหาแบบเรียลไทม์
         document.getElementById('search').addEventListener('input', function() {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(fetchQueues, 300); // รอ 300ms เพื่อลดการเรียก AJAX บ่อยเกินไป
+            searchTimeout = setTimeout(() => {
+                currentPage = 1;
+                fetchQueues(1);
+            }, 300); // รอ 300ms เพื่อลดการเรียก AJAX บ่อยเกินไป
         });
     </script>
 </body>

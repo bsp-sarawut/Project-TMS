@@ -25,8 +25,59 @@ $search = isset($_POST['search']) ? trim($_POST['search']) : '';
 $filter_date = isset($_POST['filter_date']) ? trim($_POST['filter_date']) : '';
 $filter_province = isset($_POST['filter_province']) ? trim($_POST['filter_province']) : '';
 $filter_amphur = isset($_POST['filter_amphur']) ? trim($_POST['filter_amphur']) : '';
+$page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
 
-// ดึงข้อมูลคิวที่ปิดงานแล้วทั้งหมด
+$limit = 1; // จำกัด 1 คิวต่อหน้า
+$offset = ($page - 1) * $limit;
+
+// ดึงข้อมูลคิวที่ปิดงานแล้วทั้งหมด (นับจำนวนทั้งหมดก่อน)
+try {
+    $sql_count = "SELECT COUNT(DISTINCT q.queue_id) as total
+                  FROM queue q
+                  JOIN province p ON q.province_id = p.PROVINCE_ID
+                  JOIN amphur a ON q.amphur_id = a.AMPHUR_ID
+                  JOIN car c ON q.car_id = c.car_id
+                  WHERE q.status_car = 'ปิดงาน'";
+
+    $params = [];
+    if (!empty($search)) {
+        $sql_count .= " AND (q.queue_id LIKE :search 
+                     OR q.queue_date LIKE :search 
+                     OR c.car_brand LIKE :search 
+                     OR c.car_license LIKE :search 
+                     OR c.car_color LIKE :search 
+                     OR p.PROVINCE_NAME LIKE :search 
+                     OR a.AMPHUR_NAME LIKE :search)";
+        $params[':search'] = "%$search%";
+    }
+    if (!empty($filter_date)) {
+        $sql_count .= " AND q.queue_date = :filter_date";
+        $params[':filter_date'] = $filter_date;
+    }
+    if (!empty($filter_province)) {
+        $sql_count .= " AND p.PROVINCE_ID = :filter_province";
+        $params[':filter_province'] = $filter_province;
+    }
+    if (!empty($filter_amphur)) {
+        $sql_count .= " AND a.AMPHUR_ID = :filter_amphur";
+        $params[':filter_amphur'] = $filter_amphur;
+    }
+
+    $stmt_count = $conn->prepare($sql_count);
+    foreach ($params as $key => $value) {
+        $stmt_count->bindValue($key, $value);
+    }
+    $stmt_count->execute();
+    $total_queues = $stmt_count->fetch(PDO::FETCH_ASSOC)['total'];
+} catch (PDOException $e) {
+    echo "<div class='no-data'><i class='fas fa-exclamation-triangle'></i><br>เกิดข้อผิดพลาด: " . htmlspecialchars($e->getMessage()) . "</div>";
+    exit();
+}
+
+// คำนวณจำนวนหน้าทั้งหมด
+$total_pages = ceil($total_queues / $limit);
+
+// ดึงข้อมูลคิวที่ปิดงานแล้ว (จำกัด 1 คิวต่อหน้า)
 try {
     $sql = "SELECT q.queue_id, q.created_at, q.queue_date, p.PROVINCE_NAME, a.AMPHUR_NAME, 
                    c.car_license, c.car_brand, c.car_color
@@ -60,12 +111,14 @@ try {
         $params[':filter_amphur'] = $filter_amphur;
     }
 
-    $sql .= " ORDER BY q.created_at DESC";
+    $sql .= " ORDER BY q.created_at DESC LIMIT :limit OFFSET :offset";
 
     $stmt_queues = $conn->prepare($sql);
     foreach ($params as $key => $value) {
         $stmt_queues->bindValue($key, $value);
     }
+    $stmt_queues->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt_queues->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt_queues->execute();
     $closed_queues = $stmt_queues->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -76,19 +129,24 @@ try {
 // ดึงข้อมูลจาก queue_log และกลุ่มตาม queue_id
 $queue_logs = [];
 try {
-    $stmt_queue_logs = $conn->prepare(
-        "SELECT queue_id, status_car, log_timestamp
-         FROM queue_log
-         WHERE queue_id IN (
-             SELECT queue_id FROM queue WHERE status_car = 'ปิดงาน'
-         )
-         ORDER BY log_timestamp ASC"
-    );
-    $stmt_queue_logs->execute();
-    $logs = $stmt_queue_logs->fetchAll(PDO::FETCH_ASSOC);
+    $queue_ids = array_column($closed_queues, 'queue_id');
+    if (!empty($queue_ids)) {
+        $placeholders = implode(',', array_fill(0, count($queue_ids), '?'));
+        $stmt_queue_logs = $conn->prepare(
+            "SELECT queue_id, status_car, log_timestamp
+             FROM queue_log
+             WHERE queue_id IN ($placeholders)
+             ORDER BY log_timestamp ASC"
+        );
+        foreach ($queue_ids as $index => $queue_id) {
+            $stmt_queue_logs->bindValue($index + 1, $queue_id, PDO::PARAM_INT);
+        }
+        $stmt_queue_logs->execute();
+        $logs = $stmt_queue_logs->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($logs as $log) {
-        $queue_logs[$log['queue_id']][] = $log;
+        foreach ($logs as $log) {
+            $queue_logs[$log['queue_id']][] = $log;
+        }
     }
 } catch (PDOException $e) {
     echo "<div class='no-data'><i class='fas fa-exclamation-triangle'></i><br>เกิดข้อผิดพลาด: " . htmlspecialchars($e->getMessage()) . "</div>";
@@ -98,21 +156,25 @@ try {
 // ดึงข้อมูล student_status_log พร้อมชื่อนักเรียน
 $student_logs = [];
 try {
-    $stmt_student_logs = $conn->prepare(
-        "SELECT `ssl`.`queue_id`, `ssl`.`student_id`, `ssl`.`stu_status`, `ssl`.`log_timestamp`,
-                `s`.`stu_name`, `s`.`stu_lastname`
-        FROM `student_status_log` `ssl`
-        LEFT JOIN `students` `s` ON `ssl`.`student_id` = `s`.`stu_ID`
-        WHERE `ssl`.`queue_id` IN (
-            SELECT queue_id FROM queue WHERE status_car = 'ปิดงาน'
-        )
-        ORDER BY `ssl`.`log_timestamp` ASC"
-    );
-    $stmt_student_logs->execute();
-    $student_log_data = $stmt_student_logs->fetchAll(PDO::FETCH_ASSOC);
+    if (!empty($queue_ids)) {
+        $placeholders = implode(',', array_fill(0, count($queue_ids), '?'));
+        $stmt_student_logs = $conn->prepare(
+            "SELECT `ssl`.`queue_id`, `ssl`.`student_id`, `ssl`.`stu_status`, `ssl`.`log_timestamp`,
+                    `s`.`stu_name`, `s`.`stu_lastname`
+            FROM `student_status_log` `ssl`
+            LEFT JOIN `students` `s` ON `ssl`.`student_id` = `s`.`stu_ID`
+            WHERE `ssl`.`queue_id` IN ($placeholders)
+            ORDER BY `ssl`.`log_timestamp` ASC"
+        );
+        foreach ($queue_ids as $index => $queue_id) {
+            $stmt_student_logs->bindValue($index + 1, $queue_id, PDO::PARAM_INT);
+        }
+        $stmt_student_logs->execute();
+        $student_log_data = $stmt_student_logs->fetchAll(PDO::FETCH_ASSOC);
 
-    foreach ($student_log_data as $log) {
-        $student_logs[$log['queue_id']][] = $log;
+        foreach ($student_log_data as $log) {
+            $student_logs[$log['queue_id']][] = $log;
+        }
     }
 } catch (PDOException $e) {
     echo "<div class='no-data'><i class='fas fa-exclamation-triangle'></i><br>เกิดข้อผิดพลาด: " . htmlspecialchars($e->getMessage()) . "</div>";
@@ -128,6 +190,10 @@ if (count($closed_queues) > 0) {
         <div class="card mb-4">
             <div class="queue-header">
                 <h3 class="mb-3">ข้อมูลคิว #<?php echo htmlspecialchars($queue_id); ?></h3>
+                <!-- เพิ่มปุ่ม Export คิวนี้ -->
+                <a href="export_queue_csv.php?queue_id=<?php echo htmlspecialchars($queue_id); ?>" class="btn btn-success btn-sm">
+                    <i class="fas fa-file-csv me-2"></i>Export คิวนี้ (CSV)
+                </a>
             </div>
             <div class="queue-details-grid">
                 <div class="detail-item">
@@ -357,5 +423,35 @@ if (count($closed_queues) > 0) {
     }
 } else {
     echo "<div class='no-data'><i class='fas fa-bus'></i><br>ไม่มีข้อมูลคิวรถที่ปิดงานแล้วในขณะนี้</div>";
+}
+
+// เพิ่มส่วน Pagination
+if ($total_queues > 0) {
+    echo '<nav aria-label="Page navigation">';
+    echo '<ul class="pagination justify-content-center">';
+    
+    // ปุ่ม Previous
+    echo '<li class="page-item ' . ($page <= 1 ? 'disabled' : '') . '">';
+    echo '<a class="page-link" href="javascript:void(0)" onclick="fetchQueues(' . ($page - 1) . ')" aria-label="Previous">';
+    echo '<span aria-hidden="true">«</span>';
+    echo '</a>';
+    echo '</li>';
+
+    // ตัวเลขหน้า
+    for ($i = 1; $i <= $total_pages; $i++) {
+        echo '<li class="page-item ' . ($page == $i ? 'active' : '') . '">';
+        echo '<a class="page-link" href="javascript:void(0)" onclick="fetchQueues(' . $i . ')">' . $i . '</a>';
+        echo '</li>';
+    }
+
+    // ปุ่ม Next
+    echo '<li class="page-item ' . ($page >= $total_pages ? 'disabled' : '') . '">';
+    echo '<a class="page-link" href="javascript:void(0)" onclick="fetchQueues(' . ($page + 1) . ')" aria-label="Next">';
+    echo '<span aria-hidden="true">»</span>';
+    echo '</a>';
+    echo '</li>';
+
+    echo '</ul>';
+    echo '</nav>';
 }
 ?>
