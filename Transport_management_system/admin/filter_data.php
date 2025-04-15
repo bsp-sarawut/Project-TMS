@@ -5,6 +5,7 @@ $date_picker = $_GET['date_picker'] ?? null;
 $province_id = $_GET['province_id'] ?? null;
 $amphur_id = $_GET['amphur_id'] ?? null;
 $location = $_GET['location'] ?? null;
+$payment_status = $_GET['payment_status'] ?? 'Paid'; // เพิ่มการรับ payment_status ค่าเริ่มต้นเป็น 'Paid'
 
 $sql = "
     SELECT tr.transport_schedule_id, ts.available_dates, ts.month, 
@@ -19,7 +20,13 @@ $sql = "
     WHERE 1=1
 ";
 
+// เพิ่มเงื่อนไข payment_status
+if ($payment_status) {
+    $sql .= " AND tr.payment_status = :payment_status";
+}
+
 $params = [];
+$params[':payment_status'] = $payment_status; // ผูกค่า payment_status
 
 if ($date_picker) {
     $dates = explode(" to ", $date_picker);

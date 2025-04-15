@@ -2,30 +2,47 @@
 require_once 'config/condb.php';
 
 // ดึงข้อมูลเดือนและปีจาก transport_schedule
-$scheduleQuery = $conn->query("SELECT DISTINCT month, year FROM transport_schedule ORDER BY year DESC, month DESC");
-$schedules = $scheduleQuery->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $scheduleQuery = $conn->query("SELECT DISTINCT month, year FROM transport_schedule ORDER BY year DESC, month DESC");
+    $schedules = $scheduleQuery->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Error fetching transport_schedule: " . $e->getMessage());
+}
 
 // ดึงข้อมูลจังหวัดจาก province
-$provinceQuery = $conn->query("SELECT * FROM province");
-$provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $provinceQuery = $conn->query("SELECT * FROM province");
+    $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Error fetching provinces: " . $e->getMessage());
+}
 
 // ดึงข้อมูลรถจาก car (จะถูกแทนที่ด้วย AJAX ใน JS)
-$carQuery = $conn->query("SELECT * FROM car ORDER BY driver_id ASC");
-$cars = $carQuery->fetchAll(PDO::FETCH_ASSOC);
+try {
+    $carQuery = $conn->query("SELECT * FROM car ORDER BY driver_id ASC");
+    $cars = $carQuery->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Error fetching cars: " . $e->getMessage());
+}
 
-// ดึงข้อมูล transport_registration
-$registrationQuery = $conn->query("
-    SELECT tr.transport_schedule_id, ts.available_dates, ts.month, 
-        tr.*, s.stu_name, s.stu_lastname, s.stu_ID, 
-        p.PROVINCE_NAME AS province_name, a.AMPHUR_NAME AS amphur_name, r.location 
-    FROM transport_registration tr 
-    LEFT JOIN students s ON tr.stu_username = s.stu_username
-    LEFT JOIN routes r ON tr.route_id = r.route_ID
-    LEFT JOIN province p ON r.province = p.PROVINCE_ID
-    LEFT JOIN amphur a ON r.amphur = a.AMPHUR_ID
-    LEFT JOIN transport_schedule ts ON tr.transport_schedule_id = ts.id
-");
-$registrations = $registrationQuery->fetchAll(PDO::FETCH_ASSOC);
+// ดึงข้อมูล transport_registration เฉพาะที่ชำระเงินแล้ว (payment_status = 'Paid')
+try {
+    $registrationQuery = $conn->query("
+        SELECT tr.transport_schedule_id, ts.available_dates, ts.month, 
+            tr.*, s.stu_name, s.stu_lastname, s.stu_ID, 
+            p.PROVINCE_NAME AS province_name, a.AMPHUR_NAME AS amphur_name, r.location 
+        FROM transport_registration tr 
+        LEFT JOIN students s ON tr.stu_username = s.stu_username
+        LEFT JOIN routes r ON tr.route_id = r.route_ID
+        LEFT JOIN province p ON r.province = p.PROVINCE_ID
+        LEFT JOIN amphur a ON r.amphur = a.AMPHUR_ID
+        LEFT JOIN transport_schedule ts ON tr.transport_schedule_id = ts.id
+        WHERE tr.payment_status = 'Paid'  /* ปรับเงื่อนไข */
+    ");
+    $registrations = $registrationQuery->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Error fetching registrations: " . $e->getMessage());
+}
 
 $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] : '';
 ?>
@@ -47,6 +64,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             font-family: 'Kanit', sans-serif;
             min-height: 100vh;
             display: flex;
+            margin: 0;
         }
         .sidebar { 
             width: 250px; 
@@ -58,12 +76,16 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         }
         .content {
             margin-left: 250px;
-            padding: 20px;
+            padding: 30px;
             flex-grow: 1;
             transition: margin-left 0.3s ease;
         }
         .content.closed { 
             margin-left: 0; 
+        }
+        .container-custom {
+            max-width: 1200px;
+            margin: 0 auto;
         }
         .card {
             border-radius: 15px;
@@ -83,29 +105,31 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             padding-bottom: 8px;
             margin-bottom: 20px;
             font-size: 1.5rem;
-}
+        }
         .form-label {
             font-weight: 500;
             color: #444;
+            font-size: 0.95rem;
         }
         .form-select, .form-control {
             border-radius: 5px;
             border: 1px solid #ccc;
-            padding: 8px;
+            padding: 10px;
+            font-size: 0.95rem;
         }
         .form-select:focus, .form-control:focus {
             border-color: #007bff;
             box-shadow: 0 0 3px rgba(0, 123, 255, 0.3);
         }
-        .btn-success {
+        .btn-primary {
             border-radius: 8px;
             padding: 10px 30px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             background: #007bff;
             border: none;
             transition: background 0.3s ease;
         }
-        .btn-success:hover {
+        .btn-primary:hover {
             background: #0056b3;
         }
         .table {
@@ -117,13 +141,14 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             background: #003087;
             color: #fff;
             text-align: center;
-            padding: 12px;
+            padding: 15px;
         }
         .table tbody tr:hover {
             background: #f9f9f9;
         }
         .table td {
             vertical-align: middle;
+            padding: 12px;
         }
         .badge-success {
             background: #28a745;
@@ -135,9 +160,20 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             font-size: 0.9rem;
             color: #555;
         }
+        .total-count, .selected-count {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 10px;
+            display: inline-block;
+            margin-right: 20px;
+        }
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
         @media (max-width: 768px) {
             .content {
-                margin-left: 250px;
+                margin-left: 0;
                 padding: 15px;
             }
             .sidebar { 
@@ -145,16 +181,32 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                 z-index: 1000; 
                 height: 100%; 
             }
+            .container-custom {
+                padding: 0 10px;
+            }
+            .card {
+                padding: 15px;
+            }
+            .card h3 {
+                font-size: 1.2rem;
+            }
+            .form-label, .form-select, .form-control, .total-count, .selected-count, .table {
+                font-size: 0.9rem;
+            }
+            .btn-primary {
+                font-size: 0.9rem;
+                padding: 8px 20px;
+            }
         }
     </style>
 </head>
 <body>
 <?php include 'sidebar.php'; ?>
 <div class="content" id="content">
-    <div class="container mt-4">
-        <h2 class="text-center mb-4" style="color: #333; font-weight: 600;">ระบบจัดการคิวรถ</h2>
+    <div class="container-custom mt-4">
+        <h2 class="text-center mb-4" style="color: #333; font-weight: 600; font-size: 2rem;">ระบบจัดการคิวรถ</h2>
         <form method="post" action="save_queue.php" id="queueForm">
-            <div class="card mb-4">
+            <div class="card">
                 <h3 class="mb-3">ข้อมูลสำหรับการจัดคิวรถ</h3>
                 <div class="row g-3">
                     <!-- ปฏิทินเลือกวันที่ -->
@@ -208,13 +260,15 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                 </div>
             </div>
 
-            <div class="card mb-4">
+            <div class="card">
                 <h3 class="mb-3">รายชื่อนักเรียนสำหรับคิวนี้</h3>
+                <div class="total-count" id="totalCount">จำนวนทั้งหมด: 0 รายการ</div>
+                <div class="selected-count" id="selectedCount">เลือกแล้ว: 0 คน</div>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>เลือก</th>
+                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
                                 <th>รหัสนักเรียน</th>
                                 <th>เดือน</th>
                                 <th>วันที่ว่าง</th>
@@ -222,7 +276,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                                 <th>จังหวัด</th>
                                 <th>จุดขึ้นรถ</th>
                                 <th>อำเภอ</th>
-                                <th>สถานะการชำระเงิน</th>
+                                <th>สถานะการชำระเงิน</th>  <!-- คืนคอลัมน์สถานะการชำระเงิน -->
                             </tr>
                         </thead>
                         <tbody>
@@ -233,7 +287,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             </div>
 
             <div class="text-center mt-4">
-                <button type="submit" class="btn btn-success">บันทึกข้อมูลคิว</button>
+                <button type="button" class="btn btn-primary" onclick="confirmQueue()">ยืนยันการจัดคิว</button>
             </div>
         </form>
     </div>
@@ -275,7 +329,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
     });
 
     // ตั้งค่า Flatpickr
-    flatpickr("#date_picker", {
+    const datePicker = flatpickr("#date_picker", {
         mode: "range",
         dateFormat: "Y-m-d",
         locale: "th",
@@ -330,7 +384,8 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         filterData();
     });
 
-    let carData = []; // ตัวแปรเก็บข้อมูลรถทั้งหมด
+    let carData = [];
+    let maxSeats = 0;
 
     function loadCars() {
         const datePicker = document.getElementById('date_picker').value;
@@ -341,6 +396,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         if (!datePicker) {
             carSelect.innerHTML = '<option value="">เลือกยานพาหนะ</option>';
             document.getElementById('driverInfo').innerHTML = '';
+            maxSeats = 0;
             return;
         }
 
@@ -358,7 +414,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                 carData.forEach(car => {
                     carSelect.innerHTML += `<option value="${car.car_id}">${car.car_license} - ${car.car_brand} (${car.car_seat} ที่นั่ง)</option>`;
                 });
-                showDriverInfo(); // แสดงข้อมูลคนขับถ้ามีการเลือกอยู่แล้ว
+                showDriverInfo();
             }
         };
         xhr.send();
@@ -371,6 +427,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 
         if (!selectedCarId) {
             driverInfoDiv.innerHTML = 'ไม่มีการเลือกยานพาหนะ';
+            maxSeats = 0;
             return;
         }
 
@@ -379,8 +436,10 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             const driverName = `${selectedCar.driver_name || 'ไม่ระบุ'} ${selectedCar.driver_lastname || ''}`.trim();
             const driverLocation = `${selectedCar.driver_province_name || 'ไม่ระบุ'} - ${selectedCar.driver_amphur_name || 'ไม่ระบุ'}`;
             driverInfoDiv.innerHTML = `คนขับ: ${driverName} <br> ที่อยู่: ${driverLocation}`;
+            maxSeats = parseInt(selectedCar.car_seat) || 0;
         } else {
             driverInfoDiv.innerHTML = 'ไม่พบข้อมูลคนขับ';
+            maxSeats = 0;
         }
     }
 
@@ -394,7 +453,8 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             date_picker: datePicker,
             province_id: provinceID,
             amphur_id: amphurID,
-            location: location
+            location: location,
+            payment_status: 'Paid'  /* ปรับให้สอดคล้อง */
         }).toString();
 
         const xhr = new XMLHttpRequest();
@@ -414,20 +474,27 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 
     function updateTable(registrations) {
         const tbody = document.querySelector('table tbody');
+        const totalCountDiv = document.getElementById('totalCount');
+        const selectedCountDiv = document.getElementById('selectedCount');
+        const selectAllCheckbox = document.getElementById('selectAll');
         tbody.innerHTML = '';
 
         if (registrations.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">ไม่พบข้อมูล</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">ไม่พบข้อมูล</td></tr>';  /* ปรับ colspan กลับเป็น 9 */
+            totalCountDiv.textContent = 'จำนวนทั้งหมด: 0 รายการ';
+            selectedCountDiv.textContent = 'เลือกแล้ว: 0 คน';
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.disabled = true;
             return;
         }
 
+        selectAllCheckbox.disabled = false;
+
         registrations.forEach(reg => {
-            const paymentStatus = reg.payment_status === 'Pending Confirmation' 
-                ? '<span class="badge badge-danger">ยังไม่ชำระ</span>' 
-                : '<span class="badge badge-success">ชำระแล้ว</span>';
+            const paymentStatus = '<span class="badge badge-success">ชำระแล้ว</span>';  /* แสดงเฉพาะ "ชำระแล้ว" */
             const row = `
                 <tr>
-                    <td><input type="checkbox" name="students[]" value="${reg.stu_ID}"></td>
+                    <td><input type="checkbox" name="students[]" value="${reg.stu_ID}" onchange="updateSelectAll()"></td>
                     <td>${reg.stu_ID}</td>
                     <td>${reg.month || 'ไม่ระบุ'}</td>
                     <td>${reg.available_dates || 'ไม่ระบุ'}</td>
@@ -435,58 +502,211 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
                     <td>${reg.province_name || 'ไม่ระบุ'}</td>
                     <td>${reg.amphur_name || 'ไม่ระบุ'}</td>
                     <td>${reg.location || 'ไม่ระบุ'}</td>
-                    <td>${paymentStatus}</td>
+                    <td>${paymentStatus}</td>  <!-- คืนการแสดงสถานะ -->
                 </tr>`;
             tbody.insertAdjacentHTML('beforeend', row);
         });
+
+        totalCountDiv.textContent = `จำนวนทั้งหมด: ${registrations.length} รายการ`;
+        updateSelectedCount();
     }
 
-    // การส่งฟอร์มด้วย SweetAlert
-    document.getElementById('queueForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        fetch('save_queue.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.text())
-        .then(data => {
-            console.log("Raw response:", data);
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/html');
-            const scripts = doc.getElementsByTagName('script');
-            for (let script of scripts) {
-                const scriptElement = document.createElement('script');
-                scriptElement.textContent = script.textContent;
-                document.body.appendChild(scriptElement);
-            }
-            if (data.includes('icon: "success"')) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'บันทึกข้อมูลสำเร็จ',
-                    text: 'ข้อมูลคิวรถได้ถูกบันทึกเรียบร้อยแล้ว',
-                    showConfirmButton: false,
-                    timer: 2000
-                }).then(() => {
-                    setTimeout(() => {
-                        filterData();
-                        loadCars();
-                    }, 500);
-                });
-            }
-        })
-        .catch(error => {
+    function updateSelectAll() {
+        const checkboxes = document.querySelectorAll('input[name="students[]"]');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const checkedCount = document.querySelectorAll('input[name="students[]"]:checked').length;
+
+        selectAllCheckbox.checked = checkedCount === checkboxes.length;
+        updateSelectedCount();
+
+        if (checkedCount > maxSeats && maxSeats > 0) {
             Swal.fire({
-                icon: 'error',
-                title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่',
+                icon: 'warning',
+                title: 'จำนวนนักเรียนเกินจำนวนที่นั่ง',
+                text: `รถที่เลือกมี ${maxSeats} ที่นั่ง แต่คุณเลือกนักเรียน ${checkedCount} คน กรุณาเลือกไม่เกิน ${maxSeats} คน`,
                 confirmButtonText: 'ตกลง'
             });
-            console.error('Fetch error:', error);
-        });
-    });
+            checkboxes.forEach((checkbox, index) => {
+                if (index >= maxSeats) {
+                    checkbox.checked = false;
+                }
+            });
+            updateSelectedCount();
+        }
+    }
 
-    // โหลดข้อมูลเริ่มต้น
+    function updateSelectedCount() {
+        const selectedCountDiv = document.getElementById('selectedCount');
+        const selectedCount = document.querySelectorAll('input[name="students[]"]:checked').length;
+        selectedCountDiv.textContent = `เลือกแล้ว: ${selectedCount} คน`;
+    }
+
+    function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('input[name="students[]"]');
+        let selectedCount = 0;
+
+        if (selectAllCheckbox.checked) {
+            if (maxSeats === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกยานพาหนะ',
+                    text: 'โปรดเลือกยานพาหนะก่อนเลือกนักเรียน',
+                    confirmButtonText: 'ตกลง'
+                });
+                selectAllCheckbox.checked = false;
+                return;
+            }
+
+            checkboxes.forEach((checkbox, index) => {
+                if (selectedCount < maxSeats) {
+                    checkbox.checked = true;
+                    selectedCount++;
+                } else {
+                    checkbox.checked = false;
+                }
+            });
+
+            if (checkboxes.length > maxSeats) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'จำนวนนักเรียนเกินจำนวนที่นั่ง',
+                    text: `รถที่เลือกมี ${maxSeats} ที่นั่ง เลือกนักเรียนได้ ${maxSeats} คนจากทั้งหมด ${checkboxes.length} คน`,
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        } else {
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+        }
+        updateSelectedCount();
+    }
+
+    function resetFilters() {
+        datePicker.clear();
+        const provinceSelect = document.getElementById('province');
+        provinceSelect.value = '';
+        const amphurSelect = document.getElementById('amphur');
+        amphurSelect.innerHTML = '<option value="">เลือกอำเภอ</option>';
+        const locationSelect = document.getElementById('location');
+        locationSelect.innerHTML = '<option value="">เลือกจุดขึ้นรถ</option>';
+        const carSelect = document.getElementById('car');
+        carSelect.innerHTML = '<option value="">เลือกยานพาหนะ</option>';
+        document.getElementById('driverInfo').innerHTML = 'ไม่มีการเลือกยานพาหนะ';
+        maxSeats = 0;
+        filterData();
+        loadCars();
+    }
+
+    function confirmQueue() {
+        const selectedStudents = document.querySelectorAll('input[name="students[]"]:checked').length;
+        const datePickerValue = document.getElementById('date_picker').value;
+        const carSelect = document.getElementById('car');
+        const selectedCarId = carSelect.value;
+
+        if (!selectedCarId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกยานพาหนะ',
+                text: 'โปรดเลือกยานพาหนะก่อนยืนยันการจัดคิว',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        if (!datePickerValue) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกวันที่',
+                text: 'โปรดเลือกวันที่เดินทางก่อนยืนยันการจัดคิว',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        if (selectedStudents === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกนักเรียน',
+                text: 'โปรดเลือกนักเรียนอย่างน้อย 1 คนก่อนยืนยันการจัดคิว',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        if (maxSeats > 0 && selectedStudents > maxSeats) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'จำนวนนักเรียนเกินจำนวนที่นั่ง',
+                text: `รถที่เลือกมี ${maxSeats} ที่นั่ง แต่คุณเลือกนักเรียน ${selectedStudents} คน กรุณาเลือกไม่เกิน ${maxSeats} คน`,
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        const selectedCar = carData.find(car => car.car_id == selectedCarId);
+        const driverName = selectedCar ? `${selectedCar.driver_name || 'ไม่ระบุ'} ${selectedCar.driver_lastname || ''}`.trim() : 'ไม่ระบุ';
+        const carLicense = selectedCar ? selectedCar.car_license || 'ไม่ระบุ' : 'ไม่ระบุ';
+        const travelDate = datePickerValue ? datePickerValue : 'ไม่ระบุ';
+
+        Swal.fire({
+            title: 'ยืนยันการจัดคิว',
+            html: `
+                <p><strong>เลือกนักเรียน:</strong> ${selectedStudents} คน</p>
+                <p><strong>วันที่เดินทาง:</strong> ${travelDate}</p>
+                <p><strong>เลขทะเบียนรถ:</strong> ${carLicense}</p>
+                <p><strong>ชื่อคนขับ:</strong> ${driverName}</p>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'ยืนยัน',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const formData = new FormData(document.getElementById('queueForm'));
+                fetch('save_queue.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(data => {
+                    console.log("Raw response:", data);
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, 'text/html');
+                    const scripts = doc.getElementsByTagName('script');
+                    for (let script of scripts) {
+                        const scriptElement = document.createElement('script');
+                        scriptElement.textContent = script.textContent;
+                        document.body.appendChild(scriptElement);
+                    }
+                    if (data.includes('icon: "success"')) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'บันทึกข้อมูลสำเร็จ',
+                            text: 'ข้อมูลคิวรถได้ถูกบันทึกเรียบร้อยแล้ว',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            setTimeout(() => {
+                                resetFilters();
+                            }, 500);
+                        });
+                    }
+                })
+                .catch(error => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: 'ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    console.error('Fetch error:', error);
+                });
+            }
+        });
+    }
+
     window.onload = function() {
         filterData();
         loadCars();
