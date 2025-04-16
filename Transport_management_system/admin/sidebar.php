@@ -13,12 +13,12 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="route.php" class="<?php echo $current_page == 'route.php' ? 'active' : ''; ?>"><i class="fas fa-map"></i> จัดการข้อมูลเส้นทาง</a>
     <a href="car.php" class="<?php echo $current_page == 'car.php' ? 'active' : ''; ?>"><i class="fas fa-car"></i> จัดการข้อมูลรถ</a>
     <a href="driver.php" class="<?php echo $current_page == 'driver.php' ? 'active' : ''; ?>"><i class="fas fa-user-tie"></i> จัดการข้อมูลคนขับ</a>
-    <a href="student.php" class="<?php echo $current_page == 'queue_log.php' ? 'active' : ''; ?>"><i class="fas fa-user-graduate"></i> จัดการข้อมูลนักศึกษา</a>
-    <a class="nav-link" href="manage_faculties_majors.php"><i class="fas fa-university me-2"></i>จัดการคณะและสาขา</a>
-    <a href="choice.php" class="<?php echo $current_page == 'choice.php' ? 'active' : ''; ?>"><i class="fas fa-calendar-alt"></i> จัดตารางลงทะเบียน</a>
-    <a href="enrollment.php" class="<?php echo $current_page == 'enrollment.php' ? 'active' : ''; ?>"><i class="fas fa-file-alt"></i> ข้อมูลการลงทะเบียน</a>
-    <a href="queue.php" class="<?php echo $current_page == 'queue.php' ? 'active' : ''; ?>"><i class="fas fa-bus"></i> จัดตารางรถ</a>
-    <a href="show_queue.php" class="<?php echo $current_page == 'show_queue.php' ? 'active' : ''; ?>"><i class="fas fa-table"></i> ตารางรถ</a>
+    <a href="student.php" class="<?php echo $current_page == 'student.php' ? 'active' : ''; ?>"><i class="fas fa-user-graduate"></i> จัดการข้อมูลนักศึกษา</a>
+    <a href="manage_faculties_majors.php" class="<?php echo $current_page == 'manage_faculties_majors.php' ? 'active' : ''; ?>"><i class="fas fa-university me-2"></i> จัดการคณะและสาขา</a>
+    <a href="choice.php" class="<?php echo $current_page == 'choice.php' ? 'active' : ''; ?>"><i class="fas fa-calendar-alt"></i> จัดการรูปแบบลงทะเบียน</a>
+    <a href="enrollment.php" class="<?php echo $current_page == 'enrollment.php' ? 'active' : ''; ?>"><i class="fas fa-file-alt"></i> จัดการการลงทะเบียน</a>
+    <a href="queue.php" class="<?php echo $current_page == 'queue.php' ? 'active' : ''; ?>"><i class="fas fa-bus"></i> จัดคิวรถ</a>
+    <a href="show_queue.php" class="<?php echo $current_page == 'show_queue.php' ? 'active' : ''; ?>"><i class="fas fa-table"></i> จัดการคิวรถ</a>
     <a href="queue_log.php" class="<?php echo $current_page == 'queue_log.php' ? 'active' : ''; ?>"><i class="fas fa-road"></i> ข้อมูลการเดินทาง</a>
     <a href="#" class="<?php echo $current_page == 'notifications.php' ? 'active' : ''; ?>"><i class="fas fa-bell"></i> แจ้งข่าวสาร</a>
     <a href="logout.php" class="logout" id="logout"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</a>

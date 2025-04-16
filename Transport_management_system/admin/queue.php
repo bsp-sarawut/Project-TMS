@@ -52,7 +52,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการคิวรถ</title>
+    <title>ระบบจัดคิวรถ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.6.0/dist/sweetalert2.all.min.js"></script>
@@ -149,6 +149,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
         .table td {
             vertical-align: middle;
             padding: 12px;
+            text-align: center;
         }
         .badge-success {
             background: #28a745;
@@ -204,10 +205,10 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
 <?php include 'sidebar.php'; ?>
 <div class="content" id="content">
     <div class="container-custom mt-4">
-        <h2 class="text-center mb-4" style="color: #333; font-weight: 600; font-size: 2rem;">ระบบจัดการคิวรถ</h2>
+        <h2 class="text-center mb-4" style="color: #333; font-weight: 600; font-size: 2rem;">ระบบจัดคิวรถ</h2>
         <form method="post" action="save_queue.php" id="queueForm">
             <div class="card">
-                <h3 class="mb-3">ข้อมูลสำหรับการจัดคิวรถ</h3>
+                <h3 class="mb-3">เลือกข้อมูลสำหรับจัดคิว</h3>
                 <div class="row g-3">
                     <!-- ปฏิทินเลือกวันที่ -->
                     <div class="col-md-4 col-12">
@@ -261,7 +262,7 @@ $available_dates = isset($_POST['available_dates']) ? $_POST['available_dates'] 
             </div>
 
             <div class="card">
-                <h3 class="mb-3">รายชื่อนักเรียนสำหรับคิวนี้</h3>
+                <h3 class="mb-3">เลือกนักเรียนสำหรับคิวนี้</h3>
                 <div class="total-count" id="totalCount">จำนวนทั้งหมด: 0 รายการ</div>
                 <div class="selected-count" id="selectedCount">เลือกแล้ว: 0 คน</div>
                 <div class="table-responsive">

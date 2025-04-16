@@ -59,7 +59,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Log คิวรถที่ปิดงานแล้ว</title>
+    <title>ข้อมูลการเดินทาง</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -502,11 +502,11 @@ try {
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">ระบบจัดการ Log คิวรถที่ปิดงานแล้ว</h2>
+            <h2 class="header-title">ข้อมูลการเดินทาง</h2>
 
             <!-- ฟอร์มค้นหา -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลคิวรถที่ปิดงานแล้ว</h3>
+                <h3 class="mb-3">ค้นหาข้อมูลคิวรถที่ปิดงานแล้ว</h3>
                 <div id="searchForm">
                     <div class="search-container">
                         <label for="search" class="form-label">ค้นหาคิว</label>
@@ -518,12 +518,12 @@ try {
                     <div class="filter-row">
                         <div class="col-md-3 col-12">
                             <label for="datePicker" class="form-label">วันที่</label>
-                            <input type="text" name="filter_date" id="datePicker" class="form-control" placeholder="เลือกวันที่">
+                            <input type="text" name="filter_date" id="datePicker" class="form-control" placeholder="-- แสดงทั้งหมด --">
                         </div>
                         <div class="col-md-3 col-12">
                             <label for="filterProvince" class="form-label">จังหวัด</label>
                             <select name="filter_province" id="filterProvince" class="form-select">
-                                <option value="">เลือกจังหวัด</option>
+                                <option value="">-- แสดงทั้งหมด --</option>
                                 <?php foreach ($provinces as $province): ?>
                                     <option value="<?php echo htmlspecialchars($province['PROVINCE_ID']); ?>">
                                         <?php echo htmlspecialchars($province['PROVINCE_NAME']); ?>
@@ -534,7 +534,7 @@ try {
                         <div class="col-md-3 col-12">
                             <label for="filterAmphur" class="form-label">อำเภอ</label>
                             <select name="filter_amphur" id="filterAmphur" class="form-select">
-                                <option value="">เลือกอำเภอ</option>
+                                <option value="">-- แสดงทั้งหมด --</option>
                             </select>
                         </div>
                     </div>

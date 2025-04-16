@@ -11,7 +11,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการการลงทะเบียน</title>
+    <title>ระบบจัดการข้อมูลการลงทะเบียน</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -402,7 +402,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">จัดการการลงทะเบียน</h2>
+            <h2 class="header-title">จัดการข้อมูลการลงทะเบียน</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['success'])) { ?>
@@ -437,9 +437,9 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
 
             <!-- ส่วนที่ 1: ฟอร์มค้นหา -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลการลงทะเบียน</h3>
+                <h3 class="mb-3">ค้นหาข้อมูลการลงทะเบียน</h3>
                 <div class="search-container">
-                    <label for="search_input" class="form-label">ค้นหาการลงทะเบียน</label>
+                    <label for="search_input" class="form-label">ค้นหาข้อมูลการลงทะเบียน</label>
                     <div class="search-input-group">
                         <span class="search-icon"><i class="fas fa-search"></i></span>
                         <input type="text" id="search_input" class="form-control" placeholder="ค้นหา: ชื่อ, นามสกุล, สถานที่, วันที่ลงทะเบียน">
@@ -487,8 +487,8 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
 
             <!-- ส่วนที่ 2: รายการการลงทะเบียน -->
             <div class="card mb-4">
-                <h3 class="mb-3">รายการการลงทะเบียนทั้งหมด</h3>
-                <div class="total-count">จำนวนรายการทั้งหมด: <span id="totalItems">0</span></div>
+                <h3 class="mb-3">ข้อมูลการลงทะเบียนทั้งหมด</h3>
+                <div class="total-count">จำนวนการลงทะเบียนทั้งหมด: <span id="totalItems">0</span></div>
                 <div class="table-container">
                     <table class="table table-striped">
                         <thead>
@@ -496,10 +496,10 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                                 <th>ชื่อ-นามสกุล</th>
                                 <th>จังหวัด</th>
                                 <th>อำเภอ</th>
-                                <th>สถานที่</th>
+                                <th>จุดขึ้นรถ</th>
                                 <th>ข้อมูลเพิ่มเติม</th>
                                 <th>สถานะ</th>
-                                <th>จัดการ</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="registrationTable">
@@ -647,7 +647,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                                     </td>
                                     <td>
                                         <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="${reg.id}">
-                                            <i class="bi bi-trash"></i>
+                                            <i class="fas fa-trash-alt"></i> ลบ
                                         </button>
                                     </td>
                                 </tr>`;

@@ -129,7 +129,7 @@ if (isset($_GET['delete_major_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>จัดการคณะและสาขา</title>
+    <title>ระบบจัดการคณะและสาขา</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -324,7 +324,7 @@ if (isset($_GET['delete_major_id'])) {
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">จัดการคณะและสาขา</h2>
+            <h2 class="header-title">ระบบจัดการคณะและสาขา</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['success'])) { ?>

@@ -16,7 +16,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>รายการคิวรถ</title>
+    <title>ระบบจัดการคิวรถ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -378,7 +378,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">รายการคิวรถ</h2>
+            <h2 class="header-title">ระบบจัดการคิวรถ</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['delete_queue_success']) && $_SESSION['delete_queue_success']) { ?>
@@ -497,7 +497,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
 
             <!-- ส่วนที่ 1: ฟอร์มค้นหา -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลคิวรถ</h3>
+                <h3 class="mb-3">ค้นหาข้อมูลคิวรถ</h3>
                 <div class="search-container">
                     <label for="search_input" class="form-label">ค้นหาคิวรถ</label>
                     <div class="search-input-group">
@@ -508,7 +508,7 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                 <div class="filter-row">
                     <div class="col-md-3 col-12">
                         <label for="queue_date_filter" class="form-label">วันที่</label>
-                        <input type="text" id="queue_date_filter" class="form-control" placeholder="เลือกวันที่">
+                        <input type="text" id="queue_date_filter" class="form-control" placeholder="-- แสดงทั้งหมด --">
                     </div>
                     <div class="col-md-3 col-12">
                         <label for="province_filter" class="form-label">จังหวัด</label>
@@ -552,8 +552,8 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
 
             <!-- ส่วนที่ 2: รายการคิวรถ -->
             <div class="card mb-4">
-                <h3 class="mb-3">รายการคิวรถทั้งหมด</h3>
-                <div class="total-count">จำนวนรายการทั้งหมด: <span id="totalItems">0</span></div>
+                <h3 class="mb-3">ข้อมูลคิวรถทั้งหมด</h3>
+                <div class="total-count">จำนวนคิวรถทั้งหมด: <span id="totalItems">0</span> คิว</div>
                 <div class="table-container">
                     <table class="table table-striped">
                         <thead>
@@ -561,10 +561,10 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                                 <th>รหัสคิว</th>
                                 <th>วันที่</th>
                                 <th>จุดขึ้นรถ</th>
-                                <th>ยานพาหนะ</th>
+                                <th>ข้อมูลรถ</th>
                                 <th>สถานะรถ</th>
                                 <th>รายชื่อนักเรียน</th>
-                                <th>จัดการ</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="queueTable">
@@ -595,9 +595,9 @@ $provinces = $conn->query("SELECT DISTINCT PROVINCE_ID, PROVINCE_NAME FROM provi
                     <table class="student-table">
                         <thead>
                             <tr>
-                                <th>รหัสนักเรียน</th>
+                                <th>ไอดี</th>
                                 <th>ชื่อ-นามสกุล</th>
-                                <th>จัดการ</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="studentTableBody">

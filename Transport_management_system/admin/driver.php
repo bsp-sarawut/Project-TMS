@@ -31,7 +31,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการคนขับ</title>
+    <title>ระบบจัดการข้อมูลคนขับ</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -351,7 +351,7 @@ try {
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">ระบบจัดการคนขับ</h2>
+            <h2 class="header-title">ระบบจัดการข้อมูลคนขับ</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['success'])) { ?>
@@ -382,7 +382,7 @@ try {
 
             <!-- ส่วนที่ 1: ฟอร์มค้นหาคนขับ -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลคนขับ</h3>
+                <h3 class="mb-3">ค้นหาข้อมูลคนขับ</h3>
                 <div class="search-container">
                     <label for="search_input" class="form-label">ค้นหาคนขับ</label>
                     <div class="search-input-group">
@@ -410,7 +410,7 @@ try {
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-primary" onclick="loadDrivers()"><i class="fas fa-search me-2"></i>ค้นหา</button>
+                    <!-- <button type="button" class="btn btn-primary" onclick="loadDrivers()"><i class="fas fa-search me-2"></i>ค้นหา</button> -->
                     <button type="button" class="btn btn-secondary" onclick="clearFilters()"><i class="fas fa-undo me-2"></i>เคลียร์ฟิลเตอร์</button>
                 </div>
             </div>
@@ -428,14 +428,14 @@ try {
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>NO.</th>
-                                <th>Username</th>
-                                <th>Full Name</th>
-                                <th>Phone</th>
-                                <th>Province</th>
-                                <th>Amphur</th>
+                                <th>ลำดับ</th>
+                                <th>ชื่อผู้ใช้</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>เบอร์โทร</th>
+                                <th>จังหวัด</th>
+                                <th>อำเภอ</th>
                                 <th>รูปภาพ</th>
-                                <th>Action</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="driverTableBody">

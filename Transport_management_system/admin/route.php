@@ -383,7 +383,7 @@ try {
 
             <!-- ส่วนที่ 1: ฟอร์มค้นหาเส้นทาง -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลเส้นทาง</h3>
+                <h3 class="mb-3">ค้นหาข้อมูลเส้นทาง</h3>
                 <div class="search-container">
                     <label for="search" class="form-label">ค้นหา</label>
                     <div class="search-input-group">
@@ -417,7 +417,7 @@ try {
                     </div>
                 </div>
                 <div class="action-buttons">
-                    <button type="button" class="btn btn-primary" onclick="loadRoutes()"><i class="fas fa-search me-2"></i>ค้นหา</button>
+                    <!-- <button type="button" class="btn btn-primary" onclick="loadRoutes()"><i class="fas fa-search me-2"></i>ค้นหา</button> -->
                     <button type="button" class="btn btn-secondary" onclick="clearFilters()"><i class="fas fa-undo me-2"></i>เคลียร์ฟิลเตอร์</button>
                 </div>
             </div>
@@ -435,13 +435,13 @@ try {
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>NO.</th>
+                                <th>ลำดับ</th>
                                 <th>จังหวัด</th>
                                 <th>อำเภอ</th>
                                 <th>สถานที่</th>
                                 <th>ราคา</th>
                                 <th>รูปภาพ</th>
-                                <th>การกระทำ</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="routeTableBody">

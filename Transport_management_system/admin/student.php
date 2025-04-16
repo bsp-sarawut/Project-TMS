@@ -2,6 +2,9 @@
 include 'config/condb.php';
 session_start();
 
+// กำหนด $current_page ให้เป็น 'student.php'
+$current_page = 'student.php';
+
 // ดึงข้อมูลคณะ
 try {
     $stmt = $conn->prepare("SELECT faculty_id, faculty_name FROM faculties ORDER BY faculty_name");
@@ -35,7 +38,7 @@ for ($i = $current_year - 4; $i <= $current_year; $i++) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการนักศึกษา</title>
+    <title>ระบบจัดการข้อมูลนักศึกษา</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
@@ -329,6 +332,15 @@ for ($i = $current_year - 4; $i <= $current_year; $i++) {
             margin: 0 auto;
             display: block;
         }
+        .nav-link.active {
+    background-color: #007bff; /* สีพื้นหลังเมื่อ active */
+    color: #fff !important; /* สีตัวอักษรเมื่อ active */
+    border-radius: 5px;
+}
+
+.nav-link.active i {
+    color: #fff !important; /* สีไอคอนเมื่อ active */
+}
         @media (max-width: 768px) {
             .content {
                 margin-left: 0;
@@ -374,7 +386,7 @@ for ($i = $current_year - 4; $i <= $current_year; $i++) {
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">ระบบจัดการนักศึกษา</h2>
+            <h2 class="header-title">ระบบจัดการข้อมูลนักศึกษา</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['success'])) { ?>

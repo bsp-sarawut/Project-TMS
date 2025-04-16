@@ -351,7 +351,7 @@ if (count($closed_queues) > 0) {
                                     <table class="table table-striped">
                                         <thead>
                                             <tr>
-                                                <th>ชื่อ</th>
+                                                <th>ชื่อ-นามสกุล</th>
                                                 <th>สถานะ</th>
                                                 <th>วันที่และเวลา</th>
                                             </tr>

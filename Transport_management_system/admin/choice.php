@@ -28,7 +28,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดตารางลงทะเบียน</title>
+    <title>ระบบจัดรูปแบบการลงทะเบียน</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
@@ -291,7 +291,7 @@ try {
     <?php include 'sidebar.php'; ?>
     <div class="content" id="content">
         <div class="container mt-4">
-            <h2 class="header-title">ระบบจัดตารางลงทะเบียน</h2>
+            <h2 class="header-title">ระบบจัดรูปแบบการลงทะเบียน</h2>
 
             <!-- แสดงข้อความแจ้งเตือน -->
             <?php if (isset($_SESSION['success'])) { ?>
@@ -322,7 +322,7 @@ try {
 
             <!-- ส่วนที่ 1: ฟอร์มค้นหา -->
             <div class="card mb-4 search-section">
-                <h3 class="mb-3">ตัวกรองข้อมูลตาราง</h3>
+                <h3 class="mb-3">ค้นหารูปแบบการลงทะเบียน</h3>
                 <div class="search-container">
                     <label for="search_input" class="form-label">ค้นหาตาราง</label>
                     <div class="search-input-group">
@@ -359,23 +359,23 @@ try {
 
             <!-- ส่วนที่ 2: รายการตาราง -->
             <div class="card mb-4">
-                <h3 class="mb-3">ข้อมูลตารางทั้งหมด</h3>
+                <h3 class="mb-3">ข้อมูลรูปแบบการลงทะเบียนทั้งหมด</h3>
                 <div class="text-end mb-3">
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
-                        <i class="fas fa-plus me-2"></i>เพิ่มตาราง
+                        <i class="fas fa-plus me-2"></i>เพิ่มรูปแบบ
                     </button>
                 </div>
-                <div class="total-count">จำนวนรายการทั้งหมด: <span id="totalItems">0</span></div>
+                <div class="total-count">จำนวนรูปแบบทั้งหมด: <span id="totalItems">0</span></div>
                 <div class="table-responsive">
                     <table class="table table-striped">
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>ไอดี</th>
                                 <th>ปี</th>
                                 <th>เดือน</th>
                                 <th>จำนวนวันที่เปิดให้ลงทะเบียน</th>
                                 <th>วันที่ขึ้นรถ</th>
-                                <th>จัดการ</th>
+                                <th>การจัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="scheduleTable">
