@@ -13,6 +13,8 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="route.php" class="<?php echo $current_page == 'route.php' ? 'active' : ''; ?>"><i class="fas fa-map"></i> จัดการข้อมูลเส้นทาง</a>
     <a href="car.php" class="<?php echo $current_page == 'car.php' ? 'active' : ''; ?>"><i class="fas fa-car"></i> จัดการข้อมูลรถ</a>
     <a href="driver.php" class="<?php echo $current_page == 'driver.php' ? 'active' : ''; ?>"><i class="fas fa-user-tie"></i> จัดการข้อมูลคนขับ</a>
+    <a href="student.php" class="<?php echo $current_page == 'queue_log.php' ? 'active' : ''; ?>"><i class="fas fa-user-graduate"></i> จัดการข้อมูลนักศึกษา</a>
+    <a class="nav-link" href="manage_faculties_majors.php"><i class="fas fa-university me-2"></i>จัดการคณะและสาขา</a>
     <a href="choice.php" class="<?php echo $current_page == 'choice.php' ? 'active' : ''; ?>"><i class="fas fa-calendar-alt"></i> จัดตารางลงทะเบียน</a>
     <a href="enrollment.php" class="<?php echo $current_page == 'enrollment.php' ? 'active' : ''; ?>"><i class="fas fa-file-alt"></i> ข้อมูลการลงทะเบียน</a>
     <a href="queue.php" class="<?php echo $current_page == 'queue.php' ? 'active' : ''; ?>"><i class="fas fa-bus"></i> จัดตารางรถ</a>
