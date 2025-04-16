@@ -394,7 +394,7 @@ try {
                 <div class="alert-card">
                     <i class="fas fa-exclamation-circle"></i>
                     <p>คุณมี <strong><?php echo $pending_confirmations; ?></strong> การลงทะเบียนที่รอการยืนยัน 
-                        <a href="pending_registrations.php">ดูรายละเอียด</a>
+                        <a href="enrollment.php">ดูรายละเอียด</a>
                     </p>
                 </div>
             <?php endif; ?>
@@ -418,7 +418,7 @@ try {
             <div class="section-title">ภาพรวมระบบ</div>
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดนักเรียนทั้งหมด" onclick="window.location.href='#'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูรายละเอียดนักเรียนทั้งหมด" onclick="window.location.href='student.php'">
                         <div class="card-header">
                             <i class="fas fa-users"></i> นักเรียนทั้งหมด
                         </div>
@@ -493,7 +493,7 @@ try {
                     </div>
                 </div>
                 <div class="col-lg-4 mb-4">
-                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูคิวที่รอดำเนินการ" onclick="window.location.href='enrollment.php'">
+                    <div class="card" data-bs-toggle="tooltip" data-bs-placement="top" title="ดูคิวที่รอดำเนินการ" onclick="window.location.href='show_queue.php'">
                         <div class="card-header">
                             <i class="fas fa-clock"></i> คิวที่รอดำเนินการ
                         </div>
