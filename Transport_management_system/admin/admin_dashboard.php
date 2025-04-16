@@ -58,17 +58,14 @@ $latest_registration = fetchSingleResult(
 
 $new_registrations_count = 0;
 if (!isset($_SESSION['last_checked_timestamp'])) {
-    // ถ้ายังไม่เคยตรวจสอบมาก่อน ให้ตั้งค่าเริ่มต้น
     $_SESSION['last_checked_timestamp'] = $latest_registration;
 } else {
-    // เปรียบเทียบ timestamp ล่าสุดกับที่เก็บไว้
     if ($latest_registration > $_SESSION['last_checked_timestamp']) {
         $new_registrations_count = fetchSingleResult(
             $conn,
             "SELECT COUNT(*) AS new_count FROM transport_registration WHERE created_at > ?",
             [$_SESSION['last_checked_timestamp']]
         )['new_count'] ?? 0;
-        // อัปเดต timestamp ล่าสุดที่ตรวจสอบ
         $_SESSION['last_checked_timestamp'] = $latest_registration;
     }
 }
@@ -90,7 +87,6 @@ try {
     $stmt_top_provinces->execute();
     $top_provinces = $stmt_top_provinces->fetchAll(PDO::FETCH_ASSOC);
 
-    // เตรียมข้อมูลสำหรับชาร์ต
     $province_labels = [];
     $registration_counts = [];
     $amphur_data = [];
@@ -157,6 +153,7 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <!-- เพิ่ม SweetAlert CDN -->
     <style>
         body {
             font-family: 'Kanit', sans-serif;
@@ -361,6 +358,33 @@ try {
 <body>
     <!-- Sidebar -->
     <?php include('sidebar.php'); ?>
+
+    <!-- แสดงข้อความแจ้งเตือนจาก Session -->
+    <?php if (isset($_SESSION['success'])) { ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ',
+                    text: '<?php echo $_SESSION['success']; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+        </script>
+        <?php unset($_SESSION['success']); ?>
+    <?php } elseif (isset($_SESSION['error'])) { ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: '<?php echo $_SESSION['error']; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+        </script>
+        <?php unset($_SESSION['error']); ?>
+    <?php } ?>
 
     <!-- Content -->
     <div class="content" id="content">

@@ -11,6 +11,8 @@ require_once 'config/condb.php';
     <title>Sign In - แอดมิน</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
@@ -24,7 +26,6 @@ require_once 'config/condb.php';
             position: relative;
         }
 
-        /* พื้นหลังอนิเมชันแบบคลื่นนุ่มนวล */
         body::before {
             content: '';
             position: absolute;
@@ -32,8 +33,8 @@ require_once 'config/condb.php';
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(66, 165, 245, 0.05), rgba(33, 33, 33, 0.1));
-            animation: subtleWave 10s infinite ease-in-out;
+            background: linear-gradient(135deg, rgba(66, 165, 245, 0.2), rgba(33, 33, 33, 0.3));
+            animation: gradientWave 15s infinite ease-in-out;
             z-index: -1;
         }
 
@@ -46,6 +47,13 @@ require_once 'config/condb.php';
             animation: fadeIn 0.5s ease-in-out;
             position: relative;
             z-index: 1;
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 15px;
+            width: 80px;
+            height: 80px;
         }
 
         h1 {
@@ -91,6 +99,8 @@ require_once 'config/condb.php';
             font-weight: 600;
             border-radius: 5px;
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         .btn-primary:hover {
@@ -99,98 +109,86 @@ require_once 'config/condb.php';
             box-shadow: 0 3px 10px rgba(66, 165, 245, 0.4);
         }
 
-        .dropdown-toggle {
-            background: #424242; /* เทาเข้ม */
-            border: none;
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            border-radius: 5px;
-            color: #ffffff;
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
         }
 
-        .dropdown-menu-sm {
-            font-size: 0.8rem;
-            width: 150px;
-            padding: 5px 0;
-            border-radius: 5px;
-            background: #ffffff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            border: 1px solid #e0e0e0;
+        .btn-primary:hover::after {
+            width: 300px;
+            height: 300px;
         }
 
-        .dropdown-item-sm {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            color: #424242;
-            transition: all 0.3s ease;
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
 
-        .dropdown-item-sm:hover {
-            background: #42a5f5;
-            color: #ffffff;
-        }
-
-        .alert {
-            border-radius: 5px;
-            font-size: 0.9rem;
-            padding: 10px;
-            margin-bottom: 20px;
-            background: #f9f9f9;
-            border: 1px solid #e0e0e0;
-            color: #212121;
-        }
-
-        /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes subtleWave {
-            0% { transform: translateY(0); opacity: 0.8; }
-            50% { transform: translateY(-10px); opacity: 1; }
-            100% { transform: translateY(0); opacity: 0.8; }
+        @keyframes gradientWave {
+            0% { background: linear-gradient(135deg, rgba(66, 165, 245, 0.2), rgba(33, 33, 33, 0.3)); }
+            50% { background: linear-gradient(135deg, rgba(33, 33, 33, 0.3), rgba(66, 165, 245, 0.2)); }
+            100% { background: linear-gradient(135deg, rgba(66, 165, 245, 0.2), rgba(33, 33, 33, 0.3)); }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
         }
     </style>
 </head>
 <body>
 
 <div class="container login-container">
-    <h1>เข้าสู่ระบบแอดมิน</h1>
+    <img src="../Logo/logo.png" alt="Logo" class="logo">
+    <h1 id="typewriter">เข้าสู่ระบบแอดมิน</h1>
     <hr>
 
     <?php if(isset($_SESSION["error"])) { ?>
-        <div class="alert alert-danger" role="alert">
-            <?php 
-                echo $_SESSION["error"];
-                unset($_SESSION["error"]);
-            ?>
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: '<?php echo $_SESSION["error"]; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+        </script>
+        <?php unset($_SESSION["error"]); ?>
     <?php } ?>
 
-    <?php if(isset($_SESSION["success"])) { ?>
-        <div class="alert alert-success" role="alert">
-            <?php   
-                echo $_SESSION["success"];
-                unset($_SESSION["success"]);
-            ?>
-        </div>
+    <?php if(isset($_SESSION["success"]) && (!isset($_SESSION['success_shown']) || $_SESSION['success_shown'] === false)) { ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ',
+                    text: '<?php echo $_SESSION["success"]; ?>',
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+        </script>
+        <?php 
+            $_SESSION['success_shown'] = true;
+            unset($_SESSION["success"]);
+        ?>
     <?php } ?>
 
     <form action="admin_signin_db.php" method="post">  
-        <!-- Dropdown Menu for Redirecting -->
-        <div class="mt-3 mb-2 d-flex justify-content-end">
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                    ผู้ใช้อื่น
-                </button>
-                <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item dropdown-item-sm" href="#">คนขับรถ</a></li>
-                    <li><a class="dropdown-item dropdown-item-sm" href="../student/index.php">นักศึกษา</a></li>
-                </ul>
-            </div>
-        </div>
-
         <div class="mb-3">
             <label for="admin_username" class="form-label">ชื่อผู้ใช้</label>
             <input type="text" class="form-control" id="admin_username" name="admin_username" required>
@@ -202,8 +200,6 @@ require_once 'config/condb.php';
 
         <button type="submit" name="signin" class="btn btn-primary w-100">เข้าสู่ระบบ</button>
     </form>
-
-    <!-- <p class="mt-3 text-center">หากยังไม่มีบัญชีผู้ใช้ <a href="admin_signup.php">ลงทะเบียนที่นี่</a></p> -->
 </div>
 
 <!-- Bootstrap JS -->
@@ -211,6 +207,21 @@ require_once 'config/condb.php';
 
 <!-- Custom JavaScript -->
 <script>
+    // Typewriter effect สำหรับ h1
+    const typewriterElement = document.getElementById('typewriter');
+    const text = typewriterElement.textContent;
+    typewriterElement.textContent = '';
+    let i = 0;
+
+    function typeWriter() {
+        if (i < text.length) {
+            typewriterElement.textContent += text.charAt(i);
+            i++;
+            setTimeout(typeWriter, 100);
+        }
+    }
+    document.addEventListener('DOMContentLoaded', typeWriter);
+
     // แสดง/ซ่อนรหัสผ่าน
     const passwordInput = document.getElementById('admin_password');
     passwordInput.addEventListener('contextmenu', (e) => {
@@ -234,14 +245,21 @@ require_once 'config/condb.php';
         });
     });
 
-    // ป้องกันการส่งฟอร์มถ้าช่องว่างเปล่า
+    // ป้องกันการส่งฟอร์มถ้าช่องว่างเปล่า + เพิ่มอนิเมชันสั่น
     const form = document.querySelector('form');
+    const loginContainer = document.querySelector('.login-container');
     form.addEventListener('submit', (e) => {
         const username = document.getElementById('admin_username').value.trim();
         const password = document.getElementById('admin_password').value.trim();
         if (!username || !password) {
             e.preventDefault();
-            alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน!');
+            loginContainer.classList.add('shake');
+            Swal.fire({
+                icon: 'warning',
+                title: 'คำเตือน',
+                text: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน!',
+                confirmButtonText: 'ตกลง'
+            });
         }
     });
 
