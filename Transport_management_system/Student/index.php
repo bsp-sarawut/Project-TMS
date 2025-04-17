@@ -13,7 +13,7 @@ session_start();
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #212121; /* ดำเข้มเรียบ */
+            background: linear-gradient(135deg, #1c2526 0%, #2c3e50 100%);
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -23,34 +23,39 @@ session_start();
             position: relative;
         }
 
-        /* พื้นหลังอนิเมชันแบบคลื่นนุ่มนวล */
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(66, 165, 245, 0.05), rgba(33, 33, 33, 0.1));
-            animation: subtleWave 10s infinite ease-in-out;
-            z-index: -1;
-        }
-
         .login-container {
             max-width: 380px;
-            background: #ffffff; /* สีขาว */
-            border-radius: 10px;
+            background: #263238;
+            border-radius: 20px; /* ปรับขอบให้โค้งมากขึ้น */
             padding: 25px;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.3);
             animation: fadeIn 0.5s ease-in-out;
             position: relative;
             z-index: 1;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .login-container:hover {
+            transform: translateY(-5px); /* ยกตัวขึ้นเมื่อ hover */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* เพิ่มเงา */
+        }
+
+        .logo {
+            display: block;
+            margin: 0 auto 15px;
+            width: 80px;
+            height: 80px;
+        }
+
+        p {
+            color: #b0bec5;
+            font-size: 0.9rem;
         }
 
         h1 {
             font-size: 1.5rem;
             font-weight: 600;
-            color: #212121; /* ดำเข้มเพื่อตัดกับขาว */
+            color: #eceff1;
             text-align: center;
             margin-bottom: 20px;
         }
@@ -58,96 +63,69 @@ session_start();
         hr {
             border: 0;
             height: 1px;
-            background: #e0e0e0; /* เทาอ่อนสำหรับพื้นขาว */
+            background: #b0bec5;
             margin-bottom: 20px;
         }
 
         .form-label {
             font-weight: 500;
-            color: #424242; /* เทาเข้ม */
+            color: #b0bec5;
+            font-size: 1rem;
         }
 
         .form-control {
-            border-radius: 5px;
+            border-radius: 15px; /* ปรับขอบให้โค้งมากขึ้น */
             padding: 10px;
-            border: 1px solid #e0e0e0; /* เทาอ่อน */
-            background: #f9f9f9; /* ขาวเทาอ่อน */
-            color: #212121;
+            border: 1px solid #b0bec5;
+            background: #2c3e50;
+            color: #eceff1;
             transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .form-control:focus {
-            border-color: #42a5f5; /* น้ำเงินอ่อน */
-            box-shadow: 0 0 6px rgba(66, 165, 245, 0.4);
-            background: #f9f9f9;
-            color: #212121;
+            border-color: #ffca28;
+            box-shadow: 0 0 6px rgba(255, 202, 40, 0.4);
+            background: #2c3e50;
+            color: #eceff1;
         }
 
         .btn-primary {
-            background: #42a5f5; /* น้ำเงินอ่อน */
+            background: linear-gradient(45deg, #ffca28, #ff8f00);
             border: none;
             padding: 10px;
             font-weight: 600;
-            border-radius: 5px;
+            border-radius: 15px; /* ปรับขอบให้โค้งมากขึ้น */
             transition: all 0.3s ease;
+            color: #1c2526;
+            font-size: 0.9rem;
         }
 
         .btn-primary:hover {
-            background: #2196f3; /* น้ำเงินเข้มขึ้นนิด */
+            background: linear-gradient(45deg, #ff8f00, #ffca28);
             transform: translateY(-1px);
-            box-shadow: 0 3px 10px rgba(66, 165, 245, 0.4);
-        }
-
-        .dropdown-toggle {
-            background: #424242; /* เทาเข้ม */
-            border: none;
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            border-radius: 5px;
-            color: #ffffff; /* ขาวเพื่อตัดกับเทา */
-        }
-
-        .dropdown-menu-sm {
-            font-size: 0.8rem;
-            width: 150px;
-            padding: 5px 0;
-            border-radius: 5px;
-            background: #ffffff; /* ขาว */
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            border: 1px solid #e0e0e0;
-        }
-
-        .dropdown-item-sm {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-            color: #424242; /* เทาเข้ม */
-            transition: all 0.3s ease;
-        }
-
-        .dropdown-item-sm:hover {
-            background: #42a5f5; /* น้ำเงินอ่อน */
-            color: #ffffff;
+            box-shadow: 0 3px 10px rgba(255, 202, 40, 0.4);
         }
 
         .alert {
-            border-radius: 5px;
+            border-radius: 15px; /* ปรับขอบให้โค้งมากขึ้น */
             font-size: 0.9rem;
             padding: 10px;
             margin-bottom: 20px;
-            background: #f9f9f9; /* ขาวเทา */
-            border: 1px solid #e0e0e0;
-            color: #212121;
+            background: #2c3e50;
+            border: 1px solid #b0bec5;
+            color: #eceff1;
         }
 
         .text-center a {
-            color: #42a5f5; /* น้ำเงินอ่อน */
+            color: #ffca28;
             font-weight: 500;
             text-decoration: none;
             transition: all 0.3s ease;
         }
 
         .text-center a:hover {
-            color: #2196f3; /* น้ำเงินเข้มขึ้น */
+            color: #ff8f00;
             text-decoration: underline;
         }
 
@@ -157,17 +135,110 @@ session_start();
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes subtleWave {
-            0% { transform: translateY(0); opacity: 0.8; }
-            50% { transform: translateY(-10px); opacity: 1; }
-            100% { transform: translateY(0); opacity: 0.8; }
+        /* รองรับการแสดงผลบนมือถือ */
+        @media (max-width: 576px) {
+            .login-container {
+                width: 90%;
+                max-width: 320px;
+                padding: 15px;
+                margin: 10px;
+                border-radius: 15px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .form-label {
+                font-size: 0.9rem;
+            }
+
+            .form-control {
+                padding: 8px;
+                font-size: 0.85rem;
+                border-radius: 10px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            .btn-primary {
+                padding: 8px;
+                font-size: 0.85rem;
+                border-radius: 10px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            p {
+                font-size: 0.85rem;
+            }
+
+            .text-center a {
+                font-size: 0.85rem;
+            }
+
+            .alert {
+                font-size: 0.85rem;
+                padding: 8px;
+                border-radius: 10px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+        }
+
+        @media (max-width: 400px) {
+            .login-container {
+                width: 95%;
+                max-width: 280px;
+                padding: 12px;
+                border-radius: 12px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            .logo {
+                width: 50px;
+                height: 50px;
+            }
+
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .form-label {
+                font-size: 0.85rem;
+            }
+
+            .form-control {
+                padding: 6px;
+                font-size: 0.8rem;
+                border-radius: 8px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            .btn-primary {
+                padding: 6px;
+                font-size: 0.8rem;
+                border-radius: 8px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
+
+            p {
+                font-size: 0.8rem;
+            }
+
+            .text-center a {
+                font-size: 0.8rem;
+            }
+
+            .alert {
+                font-size: 0.8rem;
+                padding: 6px;
+                border-radius: 8px; /* ปรับขอบให้โค้งสำหรับมือถือ */
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="container login-container">
-    <h1>เข้าสู่ระบบนักศึกษา</h1>
+    <img src="../Logo/Logo_stu.png" alt="Logo" class="logo">
+    <h1 id="typewriter">เข้าสู่ระบบนักศึกษา</h1>
     <hr>
 
     <?php if(isset($_SESSION["error"])) { ?>
@@ -189,19 +260,6 @@ session_start();
     <?php } ?>
 
     <form action="stu_signin_db.php" method="post">   
-        <!-- Dropdown Menu for Redirecting -->
-        <div class="mt-3 mb-2 d-flex justify-content-end">
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                    ผู้ใช้อื่น
-                </button>
-                <ul class="dropdown-menu dropdown-menu-sm" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item dropdown-item-sm" href="../admin/index.php">แอดมิน</a></li>
-                    <li><a class="dropdown-item dropdown-item-sm" href="#">คนขับรถ</a></li>
-                </ul>
-            </div>
-        </div>
-
         <div class="mb-3">
             <label for="stu_username" class="form-label">ชื่อผู้ใช้</label>
             <input type="text" class="form-control" id="stu_username" name="stu_username" required>
@@ -222,13 +280,28 @@ session_start();
 
 <!-- Custom JavaScript -->
 <script>
+    // Typewriter effect สำหรับ h1
+    const typewriterElement = document.getElementById('typewriter');
+    const text = typewriterElement.textContent;
+    typewriterElement.textContent = '';
+    let i = 0;
+
+    function typeWriter() {
+        if (i < text.length) {
+            typewriterElement.textContent += text.charAt(i);
+            i++;
+            setTimeout(typeWriter, 100); // ความเร็วในการพิมพ์ (100ms ต่อตัวอักษร)
+        }
+    }
+    document.addEventListener('DOMContentLoaded', typeWriter);
+
     // แสดง/ซ่อนรหัสผ่าน
     const passwordInput = document.getElementById('stu_password');
     passwordInput.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
-            setTimeout(() => passwordInput.type = 'password', 1000); // ซ่อนกลับหลัง 1 วินาที
+            setTimeout(() => passwordInput.type = 'password', 1000);
         }
     });
 
@@ -237,7 +310,7 @@ session_start();
     inputs.forEach(input => {
         input.addEventListener('focus', () => {
             input.style.transform = 'scale(1.02)';
-            input.style.boxShadow = '0 0 6px rgba(66, 165, 245, 0.4)';
+            input.style.boxShadow = '0 0 6px rgba(255, 202, 40, 0.4)';
         });
         input.addEventListener('blur', () => {
             input.style.transform = 'scale(1)';
