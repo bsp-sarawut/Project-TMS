@@ -454,7 +454,7 @@ try {
                             <i class="fas fa-ticket-alt"></i>
                             <div>
                                 <h5>การลงทะเบียนวันนี้</h5>
-                                <p id="registrations-today"><?php echo $registrations_today; ?></p>
+                                <!-- <p id="registrations-today"><?php echo $registrations_today; ?></p> -->
                             </div>
                         </div>
                     </div>

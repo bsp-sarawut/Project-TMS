@@ -1,7 +1,62 @@
 <?php
-    // session_start(); // เริ่มต้นเซสชัน
-    require_once 'condb.php';
-    include 'navbar.php';
+// session_start(); // เริ่มต้นเซสชัน
+require_once 'condb.php';
+include_once 'navbar.php'; // ปรับ path ให้ถูกต้อง
+
+// ดึงข้อมูลการชำระเงินจากฐานข้อมูล
+$stmt = $conn->prepare("SELECT * FROM payment_info WHERE id = 1");
+$stmt->execute();
+$payment_info = $stmt->fetch(PDO::FETCH_ASSOC);
+
+// ถ้าไม่มีข้อมูล ให้ใช้ค่าเริ่มต้น
+if (!$payment_info) {
+    $payment_info = [
+        'bank_name' => 'ธนาคารกสิกรไทย',
+        'account_name' => 'บริษัท ตัวอย่าง จำกัด',
+        'account_number' => '123-4-56789-0',
+        'qr_code_path' => 'imgQR/default-qr-code.png'
+    ];
+}
+
+// ตรวจสอบและแก้ไขพาธ QR Code
+$qr_code_path = $payment_info['qr_code_path'];
+// ตรวจสอบชื่อไฟล์ (ป้องกันชื่อที่ไม่สมบูรณ์ เช่น ..รูป)
+if (empty($qr_code_path) || strpos($qr_code_path, '..') !== false || !preg_match('/\.(jpg|jpeg|png)$/i', $qr_code_path)) {
+    $qr_code_path = 'imgQR/default-qr-code.png';
+    $payment_info['qr_code_path'] = $qr_code_path;
+}
+
+// แปลงพาธให้สัมพันธ์กับโครงสร้างโฟลเดอร์ Transport_management_system/admin/imgQR/
+$base_path = realpath(__DIR__ . '/../../admin'); // ชี้ไปที่โฟลเดอร์ admin/
+$qr_code_full_path = $base_path . DIRECTORY_SEPARATOR . ltrim($qr_code_path, './');
+$default_qr_path = $base_path . DIRECTORY_SEPARATOR . 'imgQR' . DIRECTORY_SEPARATOR . 'default-qr-code.png';
+
+// ดีบัก: แสดงพาธที่คำนวณได้และผลการตรวจสอบไฟล์
+error_log("Base Path: " . $base_path);
+error_log("QR Code Path from DB: " . $qr_code_path);
+error_log("QR Code Full Path: " . $qr_code_full_path);
+error_log("File Exists (QR Code): " . (file_exists($qr_code_full_path) ? 'Yes' : 'No'));
+error_log("Default QR Path: " . $default_qr_path);
+error_log("File Exists (Default QR): " . (file_exists($default_qr_path) ? 'Yes' : 'No'));
+
+// ตรวจสอบว่าไฟล์ QR Code มีอยู่จริงหรือไม่
+if (file_exists($qr_code_full_path)) {
+    // เข้ารหัสช่องว่างในชื่อไฟล์เพื่อให้ URL ถูกต้อง
+    $encoded_path = implode('/', array_map('rawurlencode', explode('/', $qr_code_path)));
+    $qr_code_display_path = '/project-tms/Transport_management_system/admin/' . $encoded_path;
+} else {
+    // ตรวจสอบว่าไฟล์เริ่มต้นมีอยู่จริงหรือไม่
+    if (file_exists($default_qr_path)) {
+        $qr_code_display_path = '/project-tms/Transport_management_system/admin/imgQR/default-qr-code.png';
+        $payment_info['qr_code_path'] = 'imgQR/default-qr-code.png';
+    } else {
+        $qr_code_display_path = '';
+        $payment_info['qr_code_path'] = 'imgQR/default-qr-code.png';
+    }
+}
+
+// ดีบัก: แสดง URL ที่ใช้แสดงรูปภาพ
+error_log("QR Code Display Path: " . $qr_code_display_path);
 ?>
 
 <!DOCTYPE html>
@@ -21,7 +76,7 @@
             margin: 0;
             position: relative;
             overflow-x: hidden;
-            padding-top: 80px; /* ป้องกันเนื้อหาทับกับ Navbar */
+            padding-top: 80px;
             color: #eceff1;
         }
         .container {
@@ -85,7 +140,7 @@
             border-color: #ff8f00;
             box-shadow: 0 0 8px rgba(255, 202, 40, 0.3);
             background: #455a64;
-            color: #eceff1;
+            color: inherit;
         }
         .form-control:read-only {
             background: #455a64;
@@ -123,6 +178,21 @@
             transform: scale(1.03);
             box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
         }
+        .btn-download {
+            background: linear-gradient(45deg, #0288d1, #03a9f4);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: 600;
+            color: #eceff1;
+            transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+            margin-top: 10px;
+        }
+        .btn-download:hover {
+            background: linear-gradient(45deg, #03a9f4, #0288d1);
+            transform: scale(1.03);
+            box-shadow: 0 4px 15px rgba(2, 136, 209, 0.4);
+        }
         .receipt-section {
             display: none;
             margin-top: 20px;
@@ -143,7 +213,7 @@
             transition: color 0.3s ease;
         }
         #close-btn:hover {
-            color:rgb(253, 47, 47);
+            color: rgb(253, 47, 47);
         }
         .receipt-section h4 {
             color: #ffca28;
@@ -175,6 +245,24 @@
             border-radius: 10px;
             border: 2px solid #ffca28;
         }
+        .payment-info {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #eceff1;
+            font-size: 0.9rem;
+            border: 1px solid #ffca28;
+        }
+        .payment-info p {
+            margin: 5px 0;
+        }
+        .payment-info img {
+            max-width: 200px;
+            border-radius: 10px;
+            border: 2px solid #ffca28;
+            margin-top: 10px;
+        }
         @media (max-width: 768px) {
             .container {
                 padding-top: 10px;
@@ -189,7 +277,7 @@
             .form-control, .form-select {
                 font-size: 0.9rem;
             }
-            .btn-primary, .btn-success {
+            .btn-primary, .btn-success, .btn-download {
                 padding: 10px 0;
                 font-size: 0.9rem;
             }
@@ -202,6 +290,13 @@
             .receipt-section p {
                 font-size: 0.9rem;
             }
+            .payment-info {
+                font-size: 0.85rem;
+                padding: 10px;
+            }
+            .payment-info img {
+                max-width: 150px;
+            }
         }
         @media (max-width: 576px) {
             .card-header h3 {
@@ -213,7 +308,7 @@
             .form-control, .form-select {
                 font-size: 0.85rem;
             }
-            .btn-primary, .btn-success {
+            .btn-primary, .btn-success, .btn-download {
                 padding: 8px 0;
                 font-size: 0.85rem;
             }
@@ -222,6 +317,13 @@
             }
             .receipt-section p {
                 font-size: 0.85rem;
+            }
+            .payment-info {
+                font-size: 0.8rem;
+                padding: 8px;
+            }
+            .payment-info img {
+                max-width: 120px;
             }
         }
     </style>
@@ -236,7 +338,7 @@
             <form id="registration-form" action="enrollment_db.php" method="POST" enctype="multipart/form-data">
                 <div class="mb-3">
                     <label class="form-label">ชื่อผู้ใช้</label>
-                    <input type="text" class="form-control" name="stu_username" value="<?php echo $_SESSION['user_name']; ?>" readonly>
+                    <input type="text" class="form-control" name="stu_username" value="<?php echo htmlspecialchars($_SESSION['user_name']); ?>" readonly>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">เลือกจังหวัด</label>
@@ -298,9 +400,26 @@
                     <label class="form-label">ราคารวม</label>
                     <input type="text" class="form-control" id="total_price" name="total_price" readonly>
                 </div>
+                <!-- เพิ่มส่วนข้อมูลการชำระเงิน -->
+                <div class="mb-3">
+                    <label class="form-label">ข้อมูลการชำระเงิน</label>
+                    <div class="payment-info">
+                        <p><strong>ธนาคาร:</strong> <?php echo htmlspecialchars($payment_info['bank_name']); ?></p>
+                        <p><strong>ชื่อบัญชี:</strong> <?php echo htmlspecialchars($payment_info['account_name']); ?></p>
+                        <p><strong>เลขที่บัญชี:</strong> <?php echo htmlspecialchars($payment_info['account_number']); ?></p>
+                        <p><strong>จำนวนเงิน:</strong> <span id="payment-amount"></span></p>
+                        <p><strong>QR Code:</strong></p>
+                        <?php if (!empty($qr_code_display_path)): ?>
+                            <img src="<?php echo htmlspecialchars($qr_code_display_path); ?>" alt="QR Code">
+                        <?php else: ?>
+                            <p style="color: #dc3545;">ไม่พบรูปภาพ QR Code</p>
+                        <?php endif; ?>
+                        <button type="button" class="btn btn-download w-100" id="download-qr-btn">บันทึก QR Code</button>
+                    </div>
+                </div>
                 <div class="mb-3">
                     <label class="form-label">ภาพใบเสร็จการชำระเงิน</label>
-                    <input type="file" class="form-control" name="payment_receipt" required>
+                    <input type="file" class="form-control" name="payment_receipt" accept="image/jpeg,image/jpg,image/png" required>
                 </div>
                 <button type="button" class="btn btn-primary w-100" id="preview-btn">ดูตัวอย่างข้อมูล</button>
                 <button type="submit" class="btn btn-success w-100 mt-3" id="submit-btn" style="display:none;">ลงทะเบียน</button>
@@ -379,7 +498,9 @@ $(document).ready(function() {
     function calculateTotalPrice() {
         var price = parseFloat($('#price').val()) || 0;
         var numOfDays = parseInt($('#num_of_days').val()) || 0;
-        $('#total_price').val((price * numOfDays).toFixed(2));
+        var totalPrice = (price * numOfDays).toFixed(2);
+        $('#total_price').val(totalPrice);
+        $('#payment-amount').text(totalPrice + ' บาท');
     }
 
     $('#preview-btn').click(function() {
@@ -416,6 +537,26 @@ $(document).ready(function() {
 
     $('#imageModal').on('hide.bs.modal', function() {
         $(this).attr('inert', '');
+    });
+
+    // ดาวน์โหลด QR Code
+    $('#download-qr-btn').click(function() {
+        var qrImageSrc = $('.payment-info img').attr('src');
+        if (qrImageSrc) {
+            var link = document.createElement('a');
+            link.href = qrImageSrc;
+            link.download = 'qr-code-payment.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            Swal.fire({
+                title: 'ไม่สามารถดาวน์โหลดได้',
+                text: 'ไม่พบรูปภาพ QR Code',
+                icon: 'error',
+                confirmButtonText: 'ตกลง'
+            });
+        }
     });
 });
 
