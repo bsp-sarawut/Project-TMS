@@ -1,18 +1,23 @@
 <?php
-    // ตรวจสอบว่าเซสชันยังไม่เริ่มต้น
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
+// ตรวจสอบว่าเซสชันยังไม่เริ่มต้น
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-    // ตรวจสอบว่ามีการกดปุ่มออกจากระบบหรือไม่
-    if (isset($_GET['logout'])) {
-        session_destroy(); // ล้าง session ทั้งหมด
-        header("Location: ../index.php"); // กลับไปหน้า login
-        exit();
-    }
+// ตรวจสอบว่ามีการกดปุ่มออกจากระบบหรือไม่
+if (isset($_GET['logout'])) {
+    session_destroy(); // ล้าง session ทั้งหมด
+    header("Location: ../index.php"); // กลับไปหน้า login
+    exit();
+}
 
-    // กำหนดค่า user_image
-    $user_image = !empty($_SESSION['stu_img']) ? "../Uploads/" . htmlspecialchars($_SESSION['stu_img']) : "../images/default-avatar.png";
+// กำหนดค่า user_image
+// ถ้า $_SESSION['stu_img'] มี "uploads/" รวมอยู่ ให้ตัดออกก่อน
+$stu_img = !empty($_SESSION['stu_img']) ? $_SESSION['stu_img'] : '';
+if (strpos($stu_img, 'uploads/') === 0) {
+    $stu_img = substr($stu_img, 8); // ตัด "uploads/" ออก (8 ตัวอักษร)
+}
+$user_image = !empty($stu_img) ? "../uploads/" . htmlspecialchars($stu_img) : "../images/default-avatar.png";
 ?>
 
 <!-- ส่วนของ Navigation Bar -->
