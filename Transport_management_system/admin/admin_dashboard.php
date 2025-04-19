@@ -400,12 +400,12 @@ try {
             <?php endif; ?>
 
             <?php if ($new_registrations_count > 0): ?>
-                <div class="alert-card success">
+                <!-- <div class="alert-card success">
                     <i class="fas fa-bell"></i>
                     <p>มีการลงทะเบียนใหม่ <strong><?php echo $new_registrations_count; ?></strong> รายการ 
                         <a href="registrations_today.php">ดูรายละเอียด</a>
                     </p>
-                </div>
+                </div> -->
             <?php endif; ?>
 
             <!-- Refresh Section -->
@@ -454,7 +454,7 @@ try {
                             <i class="fas fa-ticket-alt"></i>
                             <div>
                                 <h5>การลงทะเบียนวันนี้</h5>
-                                <!-- <p id="registrations-today"><?php echo $registrations_today; ?></p> -->
+                                <p id="registrations-today"><?php echo $registrations_today; ?></p>
                             </div>
                         </div>
                     </div>

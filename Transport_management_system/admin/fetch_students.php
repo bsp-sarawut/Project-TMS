@@ -49,6 +49,13 @@ try {
     $stmt->execute();
     $students = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // ปรับ stu_img ให้เป็นแค่ชื่อไฟล์ (ตัด uploads/ ออก)
+    foreach ($students as &$student) {
+        if (!empty($student['stu_img'])) {
+            $student['stu_img'] = basename($student['stu_img']);
+        }
+    }
+
     // ดีบักข้อมูลที่ดึงมา
     error_log("Fetched students: " . print_r($students, true));
 
