@@ -137,7 +137,7 @@
                 </div>
             </div>
 
-            <!-- อัปเดตสถานะรถ -->
+            <!-- อัปเดตสถานะรถ
             <div class="col-12 col-md-3">
                 <div class="card">
                     <div class="card-body">
@@ -149,20 +149,8 @@
                 </div>
             </div>
 
-            <!-- ดูข้อมูลนักศึกษา -->
-            <div class="col-12 col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <i class="fas fa-users"></i>
-                        <h5 class="card-title">ดูข้อมูลนักศึกษา</h5>
-                        <p class="card-text">ดูรายชื่อนักศึกษาในคิว</p>
-                        <a href="student_list.php" class="btn btn-primary">ดูข้อมูล</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ตั้งค่าโปรไฟล์ -->
-            <div class="col-12 col-md-3">
+            <!-- เพิ่มส่วนตั้งค่าโปรไฟล์กลับมา -->
+            <!-- <div class="col-12 col-md-3">
                 <div class="card">
                     <div class="card-body">
                         <i class="fas fa-user-cog"></i>
@@ -171,9 +159,9 @@
                         <a href="driver_profile.php" class="btn btn-primary">ตั้งค่า</a>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
-    </div>
+    </div> -->
 
     <!-- Bootstrap 5 JS, Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
