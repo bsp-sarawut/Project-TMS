@@ -698,7 +698,7 @@ for ($i = $current_year - 4; $i <= $current_year; $i++) {
                     if (students.length > 0) {
                         students.forEach(student => {
                             console.log('Student ID:', student.stu_ID); // ดีบัก stu_ID
-                            const imageSrc = student.stu_img ? `../Student/uploads/${student.stu_img}` : 'images/default_student.jpg';
+                            const imageSrc = student.stu_img ? `../Student/${student.stu_img}` : 'images/default_student.jpg';
                             html += `
                                 <tr>
                                     <td>${index++}</td>
