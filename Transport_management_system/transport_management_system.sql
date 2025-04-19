@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 11, 2025 at 09:59 AM
+-- Generation Time: Apr 19, 2025 at 03:37 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -1076,21 +1076,7 @@ CREATE TABLE `car` (
 --
 
 INSERT INTO `car` (`car_id`, `car_license`, `car_brand`, `car_color`, `car_seat`, `car_status`, `car_image`, `driver_id`) VALUES
-(43, 'นข-1234 กรุงเทพ', 'Toyota Commuter', 'ขาว', 12, 'available', 'commuter_white_1.jpg', NULL),
-(44, 'นข-2345 กรุงเทพ', 'Toyota Commuter', 'เงิน', 12, 'available', 'commuter_silver_1.jpg', NULL),
-(45, 'นข-3456 กรุงเทพ', 'Toyota Commuter', 'ขาว', 12, 'available', 'commuter_white_2.jpg', NULL),
-(46, 'นข-4567 กรุงเทพ', 'Toyota Hiace', 'ขาว', 12, 'available', 'hiace_white_1.jpg', NULL),
-(47, 'นข-5678 กรุงเทพ', 'Toyota Hiace', 'เงิน', 12, 'available', 'hiace_silver_1.jpg', NULL),
-(48, 'นข-6789 กรุงเทพ', 'Toyota Ventury', 'ดำ', 10, 'available', 'ventury_black_1.jpg', NULL),
-(49, 'นข-7890 กรุงเทพ', 'Toyota Ventury', 'เงิน', 10, 'available', 'ventury_silver_1.jpg', NULL),
-(50, 'นข-8901 กรุงเทพ', 'Hyundai H1', 'ขาว', 11, 'available', 'h1_white_1.jpg', NULL),
-(51, 'นข-9012 กรุงเทพ', 'Hyundai H1', 'เงิน', 11, 'available', 'h1_silver_1.jpg', '73'),
-(52, 'นม-1234 กรุงเทพ', 'Nissan Urvan', 'ขาว', 12, 'available', 'Profile.jpg', '74'),
-(53, 'นม-2345 กรุงเทพ', 'Nissan Urvan', 'เงิน', 12, 'available', 'urvan_silver_1.jpg', NULL),
-(54, 'นม-3456 กรุงเทพ', 'Mercedes-Benz Sprinter', 'ขาว', 15, 'available', 'sprinter_white_1.jpg', NULL),
-(55, 'นม-4567 กรุงเทพ', 'Mercedes-Benz Sprinter', 'เงิน', 15, 'available', 'sprinter_silver_1.jpg', NULL),
-(56, 'นม-5678 กรุงเทพ', 'Ford Transit', 'ขาว', 12, 'available', 'transit_white_1.jpg', NULL),
-(57, 'นม-6789 กรุงเทพ', 'Ford Transit', 'ดำ', 12, 'available', 'transit_black_1.jpg', NULL);
+(60, '9กม370', 'Alphard Toyota ', 'บรอนซ์', 10, 'available', '1745069385_70519e21b99ede665ffe1f042e4bd436-2919147152372618318.jpg', '116');
 
 -- --------------------------------------------------------
 
@@ -1115,21 +1101,80 @@ CREATE TABLE `driver` (
 --
 
 INSERT INTO `driver` (`driver_id`, `driver_user`, `driver_password`, `driver_name`, `driver_lastname`, `driver_tel`, `driver_province`, `driver_amphur`, `driver_image`) VALUES
-(73, 'driver1', 'deriver1', 'นายก', 'กอไก่', '0881234567', '11', '137', 'driver_1.jpg'),
-(74, 'driver2', 'deriver2', 'นายข', 'ขอไข่', '0882345678', '11', '137', 'driver_2.jpg'),
-(75, 'driver3', 'deriver3', 'นายค', 'ควาย', '0883456789', '11', '137', 'driver_3.jpg'),
-(76, 'driver4', 'deriver4', 'นายง', 'งูเห่า', '0884567890', '11', '137', 'driver_4.jpg'),
-(77, 'driver5', 'deriver5', 'นายจ', 'จานดาว', '0885678901', '11', '137', 'driver_5.jpg'),
-(78, 'driver6', 'deriver6', 'นายฉ', 'ฉิ่งฉาบ', '0886789012', '11', '137', 'driver_6.jpg'),
-(79, 'driver7', 'deriver7', 'นายช', 'ช้างน้อย', '0887890123', '11', '137', 'driver_7.jpg'),
-(80, 'driver8', 'deriver8', 'นายซ', 'ซิ่งรถ', '0888901234', '11', '137', 'driver_8.jpg'),
-(81, 'driver9', 'deriver9', 'นายฌ', 'เฌอปราง', '0889012345', '11', '137', 'driver_9.jpg'),
-(82, 'driver10', 'deriver10', 'นายญ', 'ญาติดี', '0880123456', '11', '137', 'driver_10.jpg'),
-(83, 'driver11', 'deriver11', 'นายฎ', 'ฎีกา', '0881234567', '11', '137', 'driver_11.jpg'),
-(84, 'driver12', 'deriver12', 'นายฏ', 'ปฏัก', '0882345678', '11', '137', 'driver_12.jpg'),
-(85, 'driver13', 'deriver13', 'นายฐ', 'ฐานะดี', '0883456789', '11', '137', 'driver_13.jpg'),
-(86, 'driver14', 'deriver14', 'นายฑ', 'มณโฑ', '0884567890', '11', '137', 'driver_14.jpg'),
-(87, 'driver15', 'deriver15', 'นายณ', 'ณรงค์', '0885678901', '11', '137', 'driver_15.jpg');
+(116, 'driver1', '$2y$10$Oiam8B4HlXnzo5BJRpn2yeRfixs1AofAg7vF1rdsyTVhwxlkdPfMK', 'นายสุดหล่อ', 'ลากไส้', '0896523652', '11', '137', 'driver_1745069314.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `faculties`
+--
+
+CREATE TABLE `faculties` (
+  `faculty_id` int(11) NOT NULL,
+  `faculty_name` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `faculties`
+--
+
+INSERT INTO `faculties` (`faculty_id`, `faculty_name`) VALUES
+(3, 'บริหารธุรกิจ'),
+(5, 'บัญชี'),
+(4, 'วิทยาศาสตร์'),
+(1, 'วิศวกรรมศาสตร์'),
+(2, 'เทคโนโลยี');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `majors`
+--
+
+CREATE TABLE `majors` (
+  `major_id` int(11) NOT NULL,
+  `major_name` varchar(100) NOT NULL,
+  `faculty_id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `majors`
+--
+
+INSERT INTO `majors` (`major_id`, `major_name`, `faculty_id`) VALUES
+(1, 'สาขาวิชาวิศวกรรมเครื่องกล', 1),
+(2, 'สาขาวิชาวิศวกรรมไฟฟ้า', 1),
+(3, 'สาขาวิชาวิศวกรรมอุตสาหการ', 1),
+(4, 'สาขาวิชาเทคโนโลยีการจัดการอุตสาหกรรม', 2),
+(5, 'สาขาวิชาการบัญชี 1', 3),
+(6, 'สาขาวิชาคอมพิวเตอร์ธุรกิจ', 3),
+(7, 'สาขาวิชาการจัดการทั่วไป', 3),
+(8, 'สาขาวิชาเทคโนโลยีสารสนเทศ', 4),
+(9, 'สาขาวิชาเทคโนโลยีคอมพิวเตอร์', 4),
+(10, 'สาขาวิชาการบัญชี 2', 5);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_info`
+--
+
+CREATE TABLE `payment_info` (
+  `id` int(11) NOT NULL,
+  `bank_name` varchar(255) NOT NULL,
+  `account_name` varchar(255) NOT NULL,
+  `account_number` varchar(50) NOT NULL,
+  `qr_code_path` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payment_info`
+--
+
+INSERT INTO `payment_info` (`id`, `bank_name`, `account_name`, `account_number`, `qr_code_path`, `created_at`, `updated_at`) VALUES
+(1, 'ธนาคารกสิกรไทย', 'บริษัท ตัวอย่าง จำกัด', '123-4-56789-0', 'imgQR/____________________________________.jpg', '2025-04-19 08:01:07', '2025-04-19 09:33:46');
 
 -- --------------------------------------------------------
 
@@ -1258,7 +1303,7 @@ CREATE TABLE `queue` (
   `car_id` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `year` varchar(255) DEFAULT NULL,
-  `status_car` enum('ว่าง','กำลังไป','ถึงจุดรับ','ออกเดินทาง','ถึงที่หมาย','กำลังกลับ','ปิดงาน','ฉุกเฉิน') DEFAULT 'ว่าง',
+  `status_car` enum('ว่าง','ถึงจุดรับ','ออกเดินทาง','ถึงที่หมาย','ปิดงาน') DEFAULT 'ว่าง',
   `queue_date` date DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
@@ -1267,9 +1312,30 @@ CREATE TABLE `queue` (
 --
 
 INSERT INTO `queue` (`queue_id`, `province_id`, `amphur_id`, `location`, `car_id`, `created_at`, `year`, `status_car`, `queue_date`) VALUES
-(131, 11, 137, 'ตลาดบ้านบึง', 51, '2025-04-10 09:21:47', '2025', 'ว่าง', '2025-05-25'),
-(132, 11, 137, 'ตลาดบ้านบึง', 52, '2025-04-10 09:22:03', '2025', 'ว่าง', '2025-05-18'),
-(133, 11, 137, 'ตลาดบ้านบึง', 51, '2025-04-10 09:22:14', '2025', 'ว่าง', '2025-05-11');
+(154, 11, 137, 'หน้าอำเภอบ้านบึง', 60, '2025-04-19 08:31:04', '2025', 'ปิดงาน', '2025-05-11');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `queue_log`
+--
+
+CREATE TABLE `queue_log` (
+  `log_id` int(11) NOT NULL,
+  `queue_id` int(11) NOT NULL,
+  `status_car` varchar(50) NOT NULL,
+  `log_timestamp` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `queue_log`
+--
+
+INSERT INTO `queue_log` (`log_id`, `queue_id`, `status_car`, `log_timestamp`) VALUES
+(46, 154, 'ถึงจุดรับ', '2025-04-19 20:33:19'),
+(47, 154, 'ออกเดินทาง', '2025-04-19 20:33:53'),
+(48, 154, 'ถึงที่หมาย', '2025-04-19 20:34:04'),
+(49, 154, 'ปิดงาน', '2025-04-19 20:34:46');
 
 -- --------------------------------------------------------
 
@@ -1290,11 +1356,8 @@ CREATE TABLE `queue_student` (
 --
 
 INSERT INTO `queue_student` (`queue_student_id`, `queue_id`, `student_id`, `created_at`, `status`) VALUES
-(143, 131, 45, '2025-04-10 14:21:47', 'ว่าง'),
-(144, 131, 44, '2025-04-10 14:21:47', 'ว่าง'),
-(145, 132, 45, '2025-04-10 14:22:03', 'ว่าง'),
-(146, 132, 44, '2025-04-10 14:22:03', 'ว่าง'),
-(147, 133, 45, '2025-04-10 14:22:14', 'ว่าง');
+(193, 154, 64, '2025-04-19 13:31:04', 'ว่าง'),
+(194, 154, 63, '2025-04-19 13:31:04', 'ว่าง');
 
 -- --------------------------------------------------------
 
@@ -1324,9 +1387,9 @@ INSERT INTO `routes` (`route_ID`, `province`, `amphur`, `location`, `price`, `ro
 (128, '11', '137', 'หนองชาก', 130.00, NULL),
 (129, '11', '137', 'หมู่บ้านหนองไผ่', 90.00, NULL),
 (130, '11', '137', 'ถนนบ้านบึง-แกลง', 180.00, NULL),
-(131, '11', '137', 'ศูนย์ราชการอำเภอบ้านบึง', 110.00, NULL),
 (132, '11', '137', 'ฟาร์มเลี้ยงไก่บ้านบึง', 160.00, NULL),
-(133, '1', '1', 'โรงเรียนกรุงเทพคริสเตียน', 70.00, 'uploads/route_img/1742801916_Screenshot 2025-03-23 222029.png');
+(133, '1', '1', 'โรงเรียนกรุงเทพคริสเตียน', 70.00, 'uploads/route_img/1742801916_Screenshot 2025-03-23 222029.png'),
+(134, '11', '137', 'หน้าอำเภอบ้านบึง', 135.00, 'uploads/route_img/1744637146_67fd0cdaaf3ff.jpg');
 
 -- --------------------------------------------------------
 
@@ -1345,7 +1408,7 @@ CREATE TABLE `students` (
   `stu_tel` varchar(10) NOT NULL,
   `stu_faculty` varchar(255) NOT NULL,
   `stu_major` varchar(255) NOT NULL,
-  `stu_status` enum('ขึ้นรถแล้ว','ลา','สาย','') DEFAULT NULL,
+  `stu_status` enum('ขึ้นรถแล้ว','ลา','สาย','เลิกเรียนแล้ว') DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `last_login` datetime DEFAULT NULL,
   `login_status` varchar(20) DEFAULT 'inactive',
@@ -1357,14 +1420,34 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`stu_ID`, `stu_username`, `stu_password`, `stu_year`, `stu_license`, `stu_name`, `stu_lastname`, `stu_tel`, `stu_faculty`, `stu_major`, `stu_status`, `created_at`, `last_login`, `login_status`, `stu_img`) VALUES
-(44, 'admin', '$2y$10$RW4GibT.KnSX.tS6uCW2M.0Myn5F4UCbZY3JoH86.YX4WJ8OFYdRS', '2565', '6601103077011', 'ศราวุธ', 'เพิ่มรัตน์', '0889620832', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีสารสนเทศ', '', '2025-01-11 08:16:41', '2025-04-10 22:17:53', 'active', NULL),
-(45, 'stu1', '$2y$10$xs9nlXQYyxTDcp18YTy8o.Xe0lPUpbZMpksuwPyuGHSaOtIWyKB.a', '2566', '1111111111111', 'สุดหล่อ', 'มาแล้วจ้า', '0889620832', 'วิศวกรรมศาสตร์', 'สาขาวิชาวิศวกรรมเครื่องกล', 'ขึ้นรถแล้ว', '2025-01-16 02:40:03', '2025-04-11 14:56:40', 'active', 'profile_45.jpg'),
-(46, 'stu2', '$2y$10$E1GiU67lj9nlT7owa3TLreV15O/Q68uvlkM9g/klBTykXH61Jva76', '2564', '1111111111111', 'student2', 'student2', '0889620832', 'เทคโนโลยี', 'สาขาวิชาเทคโนโลยีการจัดการอุตสาหกรรม', '', '2025-01-16 07:49:30', '2025-03-17 21:35:06', 'active', NULL),
-(47, 'new', '$2y$10$b.QA7BBbWdWK5D/.TOnk8.W1aGQKk4e6v0QA5uGBaDNTKerA.9D22', '2566', '1111111111111', 'sdasd', 'adjiaodj', '0889620832', 'เทคโนโลยี', 'สาขาวิชาเทคโนโลยีการจัดการอุตสาหกรรม', '', '2025-01-18 08:53:42', '2025-01-18 15:53:47', 'active', NULL),
-(50, 'admin12', '$2y$10$xtMeA3I1d51soOXm1sEbbu./ZHjYH9FBln5/PrLygD2QHZ/cpWV9m', '2565', '1111111111111', 'admin12', 'admin12', '0889620832', 'วิศวกรรมศาสตร์', 'สาขาวิชาวิศวกรรมเครื่องกล', '', '2025-02-04 03:35:11', NULL, 'inactive', NULL),
-(52, 'user0', '$2y$10$Ap6hZdS5exgoGO2O1DZdZ.5BD11o0y1tfy/c43GJyppPC/86JzToa', '2564', '1111111111111', 'Sarawut', 'Phoemrat', '0889620832', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีคอมพิวเตอร์', '', '2025-02-04 03:42:24', '2025-03-06 16:38:28', 'active', 'uploads/67a18ca0398da.png'),
-(53, 'admin13', '$2y$10$HNmONfk/Hm2gBQoJNTShYOh32SPKSOgZDkMesKbPArNZQIKYJtjH2', '2564', '1111111111111', 'ศราวุธ', 'เพิ่มรัตน์', '0889620832', 'บัญชี', 'สาขาวิชาการบัญชี', '', '2025-02-04 04:28:06', '2025-02-07 16:02:49', 'active', 'uploads/67a19756314b2.png'),
-(54, 'stu3', '$2y$10$cp2gcltCQmRFbkJr.AB8wuvcwCqOGT891fjGbhRfgvnHr0FCz8UB.', '2565', '6601103077021', 'Kitti', 'Boonmerod', '0895421526', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีสารสนเทศ', '', '2025-04-11 07:32:41', '2025-04-11 14:53:50', 'active', 'profile_54.jpg');
+(63, 'student1', '$2y$10$3RlXva.Q1RIELmRBR9AHlu/kktdY4IQSCst/wqvbr5USU/Jz/Bs.m', '2565', '6601103077011', 'ศราวุธ', 'เพิ่มรัตน์', '0889620832', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีสารสนเทศ', 'เลิกเรียนแล้ว', '2025-04-19 13:01:32', '2025-04-19 20:26:17', 'active', 'uploads/68039eaca71c1.jpg'),
+(64, 'student2', '$2y$10$JCBU1bN8f.m8ghJvunOtVOsil9/aXMu7X6sWwXVdLwHafP2NQiOwm', '2565', '6601103077021', 'กิตติ', 'บุญมีรอด', '0896523654', 'วิศวกรรมศาสตร์', 'สาขาวิชาวิศวกรรมไฟฟ้า', 'เลิกเรียนแล้ว', '2025-04-19 13:06:45', '2025-04-19 20:33:09', 'active', '6803a3cd0afcb.jpg');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_status_log`
+--
+
+CREATE TABLE `student_status_log` (
+  `status_log_id` int(11) NOT NULL,
+  `queue_id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `stu_status` varchar(50) DEFAULT NULL,
+  `log_timestamp` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `student_status_log`
+--
+
+INSERT INTO `student_status_log` (`status_log_id`, `queue_id`, `student_id`, `stu_status`, `log_timestamp`) VALUES
+(54, 154, 63, 'ขึ้นรถแล้ว', '2025-04-19 20:33:33'),
+(55, 154, 64, 'ขึ้นรถแล้ว', '2025-04-19 20:33:35'),
+(56, 154, 63, 'เลิกเรียนแล้ว', '2025-04-19 20:34:19'),
+(57, 154, 64, 'เลิกเรียนแล้ว', '2025-04-19 20:34:22'),
+(58, 154, 63, 'เลิกเรียนแล้ว', '2025-04-19 20:34:46'),
+(59, 154, 64, 'เลิกเรียนแล้ว', '2025-04-19 20:34:46');
 
 -- --------------------------------------------------------
 
@@ -1389,11 +1472,8 @@ CREATE TABLE `transport_registration` (
 --
 
 INSERT INTO `transport_registration` (`id`, `transport_schedule_id`, `route_id`, `num_of_days`, `total_price`, `payment_status`, `payment_receipt_image`, `created_at`, `stu_username`) VALUES
-(52, 71, 123, 4, 600.00, 'Pending Confirmation', 'uploads/receipts/67f799d39c211_Profile.jpg', '2025-04-10 10:13:39', 'stu1'),
-(53, 69, 123, 3, 450.00, 'Pending Confirmation', 'uploads/receipts/67f79a2a9af77_Profile.jpg', '2025-04-10 10:15:06', 'admin'),
-(54, 71, 123, 4, 600.00, 'Pending Confirmation', 'uploads/receipts/67f79ab441614_getstudentimage.jpg', '2025-04-10 10:17:24', 'admin'),
-(55, 71, 123, 4, 600.00, 'Pending Confirmation', 'uploads/receipts/67f7a82d4404e_Profile.jpg', '2025-04-10 11:14:53', 'admin'),
-(56, 71, 133, 4, 280.00, 'Paid', 'uploads/receipts/67f7a9d671b38_Profile.jpg', '2025-04-10 11:21:58', 'admin');
+(68, 71, 134, 4, 540.00, 'Paid', 'uploads/receipts/6803a41022eca_หลักฐานการโอนเงิน.jpg', '2025-04-19 13:24:32', 'student2'),
+(69, 71, 134, 4, 540.00, 'Paid', 'uploads/receipts/6803a49389ddc_หลักฐานการโอนเงิน.jpg', '2025-04-19 13:26:43', 'student1');
 
 -- --------------------------------------------------------
 
@@ -1415,9 +1495,8 @@ CREATE TABLE `transport_schedule` (
 --
 
 INSERT INTO `transport_schedule` (`id`, `month`, `year`, `available_dates`, `created_at`, `num_of_days`) VALUES
-(69, 4, 2025, '20, 27, 13', '2025-04-10 09:29:26', 3),
-(70, 4, 2025, '13, 20, 27', '2025-04-10 09:36:40', 3),
-(71, 5, 2025, '04, 11, 18, 25', '2025-04-10 10:07:13', 4);
+(71, 5, 2025, '4, 11, 18, 25', '2025-04-10 10:07:13', 4),
+(72, 2, 2026, '4, 11, 18, 25', '2025-04-14 15:13:16', 4);
 
 --
 -- Indexes for dumped tables
@@ -1452,6 +1531,27 @@ ALTER TABLE `driver`
   ADD UNIQUE KEY `driver_user` (`driver_user`);
 
 --
+-- Indexes for table `faculties`
+--
+ALTER TABLE `faculties`
+  ADD PRIMARY KEY (`faculty_id`),
+  ADD UNIQUE KEY `faculty_name` (`faculty_name`);
+
+--
+-- Indexes for table `majors`
+--
+ALTER TABLE `majors`
+  ADD PRIMARY KEY (`major_id`),
+  ADD UNIQUE KEY `major_name` (`major_name`),
+  ADD KEY `faculty_id` (`faculty_id`);
+
+--
+-- Indexes for table `payment_info`
+--
+ALTER TABLE `payment_info`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `professors`
 --
 ALTER TABLE `professors`
@@ -1475,6 +1575,13 @@ ALTER TABLE `queue`
   ADD KEY `car_id` (`car_id`);
 
 --
+-- Indexes for table `queue_log`
+--
+ALTER TABLE `queue_log`
+  ADD PRIMARY KEY (`log_id`),
+  ADD KEY `fk_queue_log_queue_id` (`queue_id`);
+
+--
 -- Indexes for table `queue_student`
 --
 ALTER TABLE `queue_student`
@@ -1494,6 +1601,14 @@ ALTER TABLE `routes`
 ALTER TABLE `students`
   ADD PRIMARY KEY (`stu_ID`),
   ADD UNIQUE KEY `stu_username` (`stu_username`);
+
+--
+-- Indexes for table `student_status_log`
+--
+ALTER TABLE `student_status_log`
+  ADD PRIMARY KEY (`status_log_id`),
+  ADD KEY `fk_student_status_queue_id` (`queue_id`),
+  ADD KEY `fk_student_status_student_id` (`student_id`);
 
 --
 -- Indexes for table `transport_registration`
@@ -1530,13 +1645,31 @@ ALTER TABLE `amphur`
 -- AUTO_INCREMENT for table `car`
 --
 ALTER TABLE `car`
-  MODIFY `car_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=58;
+  MODIFY `car_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `driver`
 --
 ALTER TABLE `driver`
-  MODIFY `driver_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=114;
+  MODIFY `driver_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=117;
+
+--
+-- AUTO_INCREMENT for table `faculties`
+--
+ALTER TABLE `faculties`
+  MODIFY `faculty_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `majors`
+--
+ALTER TABLE `majors`
+  MODIFY `major_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT for table `payment_info`
+--
+ALTER TABLE `payment_info`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `professors`
@@ -1554,41 +1687,59 @@ ALTER TABLE `province`
 -- AUTO_INCREMENT for table `queue`
 --
 ALTER TABLE `queue`
-  MODIFY `queue_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=134;
+  MODIFY `queue_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=155;
+
+--
+-- AUTO_INCREMENT for table `queue_log`
+--
+ALTER TABLE `queue_log`
+  MODIFY `log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `queue_student`
 --
 ALTER TABLE `queue_student`
-  MODIFY `queue_student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=148;
+  MODIFY `queue_student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=195;
 
 --
 -- AUTO_INCREMENT for table `routes`
 --
 ALTER TABLE `routes`
-  MODIFY `route_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=134;
+  MODIFY `route_ID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=136;
 
 --
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `stu_ID` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `stu_ID` int(10) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+
+--
+-- AUTO_INCREMENT for table `student_status_log`
+--
+ALTER TABLE `student_status_log`
+  MODIFY `status_log_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT for table `transport_registration`
 --
 ALTER TABLE `transport_registration`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 
 --
 -- AUTO_INCREMENT for table `transport_schedule`
 --
 ALTER TABLE `transport_schedule`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=77;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `majors`
+--
+ALTER TABLE `majors`
+  ADD CONSTRAINT `majors_ibfk_1` FOREIGN KEY (`faculty_id`) REFERENCES `faculties` (`faculty_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `professors`
@@ -1605,11 +1756,24 @@ ALTER TABLE `queue`
   ADD CONSTRAINT `queue_ibfk_3` FOREIGN KEY (`car_id`) REFERENCES `car` (`car_id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
+-- Constraints for table `queue_log`
+--
+ALTER TABLE `queue_log`
+  ADD CONSTRAINT `fk_queue_log_queue_id` FOREIGN KEY (`queue_id`) REFERENCES `queue` (`queue_id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `queue_student`
 --
 ALTER TABLE `queue_student`
   ADD CONSTRAINT `fk_student_id` FOREIGN KEY (`student_id`) REFERENCES `students` (`stu_ID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `queue_student_ibfk_1` FOREIGN KEY (`queue_id`) REFERENCES `queue` (`queue_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `student_status_log`
+--
+ALTER TABLE `student_status_log`
+  ADD CONSTRAINT `fk_student_status_queue_id` FOREIGN KEY (`queue_id`) REFERENCES `queue` (`queue_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_student_status_student_id` FOREIGN KEY (`student_id`) REFERENCES `students` (`stu_ID`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `transport_registration`
