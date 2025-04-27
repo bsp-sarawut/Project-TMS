@@ -1,6 +1,7 @@
 <!-- sidebar.php -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+
 <?php
 // ดึงชื่อไฟล์ปัจจุบัน เพื่อใช้ตรวจสอบว่าอยู่ในหน้าไหน
 $current_page = basename($_SERVER['PHP_SELF']);

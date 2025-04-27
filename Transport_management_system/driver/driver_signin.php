@@ -50,6 +50,7 @@ if (isset($_POST["signin"])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบคนขับ</title>
     <!-- Bootstrap 5 CSS -->
+    <link rel="icon" type="image/x-icon" href="../Logo/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
