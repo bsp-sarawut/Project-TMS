@@ -21,7 +21,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
     <a href="show_queue.php" class="<?php echo $current_page == 'show_queue.php' ? 'active' : ''; ?>"><i class="fas fa-table"></i> จัดการคิวรถ</a>
     <a href="queue_log.php" class="<?php echo $current_page == 'queue_log.php' ? 'active' : ''; ?>"><i class="fas fa-road"></i> ข้อมูลการเดินทาง</a>
     <a href="edit_payment_info.php" class="<?php echo $current_page == '' ? 'active' : ''; ?>"><i class="fas fa-money-bill-wave"></i>จัดการรูปแบบชำระเงิน</a>
-    <a href="#" class="<?php echo $current_page == 'notifications.php' ? 'active' : ''; ?>"><i class="fas fa-bell"></i> แจ้งข่าวสาร</a>
+    <a href="manage_news.php" class="<?php echo $current_page == 'manage_news.php' ? 'active' : ''; ?>"><i class="fas fa-bell"></i> แจ้งข่าวสาร</a>
     <a href="logout.php" class="logout" id="logout"><i class="fas fa-sign-out-alt"></i> ออกจากระบบ</a>
 </div>
 
