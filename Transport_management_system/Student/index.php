@@ -237,7 +237,7 @@ session_start();
 <body>
 
 <div class="container login-container">
-    <img src="../Logo/Logo_stu.png" alt="Logo" class="logo">
+    <img src="../Logo/logo_index.png" alt="Logo" class="logo">
     <h1 id="typewriter">เข้าสู่ระบบนักศึกษา</h1>
     <hr>
 

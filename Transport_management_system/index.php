@@ -57,7 +57,7 @@ try {
         .btn-login:hover {
             background-color: #e0e0e0;
             color: #003087;
-            transform: rotate(5deg);
+            transform: scale(1.05);
         }
         .header-title {
             font-size: 2.5rem;
@@ -278,7 +278,7 @@ try {
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="Logo/logo.png" alt="โลโก้ระบบจัดการการขนส่ง"></a>
+            <a class="navbar-brand" href="#"><img src="Logo/logo_index.png" alt="โลโก้ระบบจัดการการขนส่ง"></a>
             <div class="ms-auto d-flex">
                 <a href="Student/index.php" class="btn btn-login"><i class="fas fa-user-graduate me-1"></i>นักเรียน</a>
                 <a href="driver/driver_signin.php" class="btn btn-login"><i class="fas fa-car me-1"></i>คนขับรถ</a>
@@ -316,7 +316,7 @@ try {
     <!-- Footer -->
     <footer class="footer">
         <div class="wave"></div>
-        <p>© 2568 ระบบจัดการการขนส่ง | ติดต่อ: <a href="mailto:support@tms.ac.th">support@tms.ac.th</a></p>
+        <p>© 2568 ระบบจัดการการขนส่ง | ติดต่อ: <br> <a href="mailto:support@tms.ac.th">bsp.sarawut@gmail.com & kitti@gmail.com</a></p>
     </footer>
 
     <!-- Modal สำหรับขยายรูปภาพ -->
