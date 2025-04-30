@@ -77,6 +77,12 @@ if (isset($_POST["signin"])) {
         .card-body {
             padding: 30px;
         }
+        .logo {
+            display: block;
+            margin: 0 auto 15px;
+            width: 80px;
+            height: 80px;
+        }
         .card-title {
             font-size: 1.5rem;
             color: #1a1a1a;
@@ -99,9 +105,27 @@ if (isset($_POST["signin"])) {
             padding: 10px;
             font-weight: 500;
             width: 100%;
+            transition: all 0.3s ease;
         }
         .btn-primary:hover {
             background-color: #0044cc;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+            border-radius: 8px;
+            padding: 10px;
+            font-weight: 500;
+            width: 100%;
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
         .alert {
             font-size: 0.9rem;
@@ -114,8 +138,23 @@ if (isset($_POST["signin"])) {
             .card-body {
                 padding: 20px;
             }
+            .logo {
+                width: 60px;
+                height: 60px;
+            }
             .card-title {
                 font-size: 1.3rem;
+            }
+            .form-control {
+                font-size: 0.9rem;
+            }
+            .btn-primary, .btn-secondary {
+                padding: 8px;
+                font-size: 0.9rem;
+                border-radius: 6px;
+            }
+            .alert {
+                font-size: 0.85rem;
             }
         }
     </style>
@@ -124,6 +163,7 @@ if (isset($_POST["signin"])) {
     <div class="login-container">
         <div class="card">
             <div class="card-body">
+                <img src="../Logo/logo.png" alt="Logo" class="logo">
                 <h5 class="card-title">เข้าสู่ระบบคนขับ</h5>
 
                 <!-- แสดงข้อความแจ้งเตือน -->
@@ -148,6 +188,7 @@ if (isset($_POST["signin"])) {
                         <input type="password" class="form-control" id="driver_password" name="driver_password" placeholder="กรอกรหัสผ่าน" required>
                     </div>
                     <button type="submit" name="signin" class="btn btn-primary">เข้าสู่ระบบ</button>
+                    <a href="../index.php" class="btn btn-secondary mt-3">กลับสู่หน้าหลัก</a>
                 </form>
             </div>
         </div>
@@ -156,5 +197,28 @@ if (isset($_POST["signin"])) {
     <!-- Bootstrap 5 JS, Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script>
+        // อนิเมชันปุ่มเมื่อคลิก
+        const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+        buttons.forEach(button => {
+            button.addEventListener('mousedown', () => {
+                button.style.transform = 'scale(0.95)';
+            });
+            button.addEventListener('mouseup', () => {
+                button.style.transform = 'scale(1)';
+            });
+        });
+
+        // ป้องกันการส่งฟอร์มถ้าช่องว่างเปล่า
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (e) => {
+            const username = document.getElementById('driver_user').value.trim();
+            const password = document.getElementById('driver_password').value.trim();
+            if (!username || !password) {
+                e.preventDefault();
+                alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่านให้ครบถ้วน!');
+            }
+        });
+    </script>
 </body>
 </html>

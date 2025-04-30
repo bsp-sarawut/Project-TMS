@@ -108,6 +108,23 @@ session_start();
             box-shadow: 0 3px 10px rgba(255, 202, 40, 0.4);
         }
 
+        .btn-secondary {
+            background: #455a64;
+            border: none;
+            padding: 10px;
+            font-weight: 600;
+            border-radius: 15px; /* ปรับขอบให้โค้งมากขึ้น */
+            transition: all 0.3s ease;
+            color: #eceff1;
+            font-size: 0.9rem;
+        }
+
+        .btn-secondary:hover {
+            background: #546e7a;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+        }
+
         .alert {
             border-radius: 15px; /* ปรับขอบให้โค้งมากขึ้น */
             font-size: 0.9rem;
@@ -165,7 +182,7 @@ session_start();
                 border-radius: 10px; /* ปรับขอบให้โค้งสำหรับมือถือ */
             }
 
-            .btn-primary {
+            .btn-primary, .btn-secondary {
                 padding: 8px;
                 font-size: 0.85rem;
                 border-radius: 10px; /* ปรับขอบให้โค้งสำหรับมือถือ */
@@ -213,7 +230,7 @@ session_start();
                 border-radius: 8px; /* ปรับขอบให้โค้งสำหรับมือถือ */
             }
 
-            .btn-primary {
+            .btn-primary, .btn-secondary {
                 padding: 6px;
                 font-size: 0.8rem;
                 border-radius: 8px; /* ปรับขอบให้โค้งสำหรับมือถือ */
@@ -274,6 +291,7 @@ session_start();
     </form>
 
     <p class="mt-3 text-center">ยังไม่มีบัญชี? <a href="stu_signup.php">ลงทะเบียนที่นี่</a></p>
+    <a href="../index.php" class="btn btn-secondary w-100">กลับสู่หน้าหลัก</a>
 </div>
 
 <!-- Bootstrap JS -->
@@ -331,12 +349,14 @@ session_start();
     });
 
     // อนิเมชันปุ่มเมื่อคลิก
-    const button = document.querySelector('.btn-primary');
-    button.addEventListener('mousedown', () => {
-        button.style.transform = 'scale(0.95)';
-    });
-    button.addEventListener('mouseup', () => {
-        button.style.transform = 'scale(1)';
+    const buttons = document.querySelectorAll('.btn-primary, .btn-secondary');
+    buttons.forEach(button => {
+        button.addEventListener('mousedown', () => {
+            button.style.transform = 'scale(0.95)';
+        });
+        button.addEventListener('mouseup', () => {
+            button.style.transform = 'scale(1)';
+        });
     });
 </script>
 
