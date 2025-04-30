@@ -305,7 +305,7 @@ if (isset($_SESSION['error'])) unset($_SESSION['error']);
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="../Logo/logo.png" alt="โลโก้ระบบจัดการการขนส่ง"></a>
+            <a class="navbar-brand" href="#"><img src="../Logo/logo_index.png" alt="โลโก้ระบบจัดการการขนส่ง"></a>
             <div class="ms-auto">
                 <a href="logout.php" class="btn btn-light">ออกจากระบบ</a>
             </div>
