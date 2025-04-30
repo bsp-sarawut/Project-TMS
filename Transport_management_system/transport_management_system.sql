@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 19, 2025 at 03:37 PM
+-- Generation Time: Apr 30, 2025 at 02:24 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -1156,6 +1156,29 @@ INSERT INTO `majors` (`major_id`, `major_name`, `faculty_id`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `news`
+--
+
+CREATE TABLE `news` (
+  `news_id` int(11) NOT NULL,
+  `news_title` varchar(255) NOT NULL,
+  `news_content` text NOT NULL,
+  `news_image` varchar(255) DEFAULT NULL,
+  `news_date` date NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `news`
+--
+
+INSERT INTO `news` (`news_id`, `news_title`, `news_content`, `news_image`, `news_date`, `created_at`) VALUES
+(3, 'ประกาศจากศูนย์อีเทค', 'ตั้งแต่วันอาทิตย์ที่ 6,20,27 เมษายน 2568 \r\nกรุณาตรวจสอบรายชื่อการนั่งรถ-จุดขึ้นรถ-ทะเบียนรถ และเบอร์โทรคนขับรถ ให้เรียบร้อย\r\nรายชื่อนี้ เฉพาะนักศึกษาที่ชำระเงินค่ารถตู้ และ ลงระบบใน Google Forme. เท่านั้น\r\nและตรงต่อเวลาในการขึ้นรถ\r\nนักศึกษาที่ไม่นั่งรถในวันดังกล่าว ให้แจ้งชื่อ-สกุล สาขา รถคันที่นั่ง ในกลุ่มสายรถด้วย\r\nดังนั้น นักศึกษาคนใดที่ไม่ได้ชำระเงิน ขอสงวนสิทธิ์ในการนั่งรถ\r\nตามเอกสารที่แนบมาที่แนบมานี้\r\nสอบถามเพิ่มเติม 088-8096038 อ.ปูนักศึกษาคนใดที่ชำระเงินค่ารถตู้ เดือนเมษายน 25668', '680e17a4bb18d.jpg', '2025-04-27', '2025-04-27 11:22:45'),
+(4, 'ประกาศมหาวิทยาลัยธนบุรี', 'วันหยุดประจำปีและวันหยุดพักผ่อนของบุคลากร ประจำปี 2568', '680e183816871.jpg', '2025-04-27', '2025-04-27 11:42:48');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `payment_info`
 --
 
@@ -1174,7 +1197,7 @@ CREATE TABLE `payment_info` (
 --
 
 INSERT INTO `payment_info` (`id`, `bank_name`, `account_name`, `account_number`, `qr_code_path`, `created_at`, `updated_at`) VALUES
-(1, 'ธนาคารกสิกรไทย', 'บริษัท ตัวอย่าง จำกัด', '123-4-56789-0', 'imgQR/____________________________________.jpg', '2025-04-19 08:01:07', '2025-04-19 09:33:46');
+(1, 'ธนาคารกสิกรไทย', 'บริษัท ตัวอย่าง จำกัด', '123-4-56789-0', 'imgQR/Profile.jpg', '2025-04-19 08:01:07', '2025-04-27 10:39:59');
 
 -- --------------------------------------------------------
 
@@ -1420,8 +1443,8 @@ CREATE TABLE `students` (
 --
 
 INSERT INTO `students` (`stu_ID`, `stu_username`, `stu_password`, `stu_year`, `stu_license`, `stu_name`, `stu_lastname`, `stu_tel`, `stu_faculty`, `stu_major`, `stu_status`, `created_at`, `last_login`, `login_status`, `stu_img`) VALUES
-(63, 'student1', '$2y$10$3RlXva.Q1RIELmRBR9AHlu/kktdY4IQSCst/wqvbr5USU/Jz/Bs.m', '2565', '6601103077011', 'ศราวุธ', 'เพิ่มรัตน์', '0889620832', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีสารสนเทศ', 'เลิกเรียนแล้ว', '2025-04-19 13:01:32', '2025-04-19 20:26:17', 'active', 'uploads/68039eaca71c1.jpg'),
-(64, 'student2', '$2y$10$JCBU1bN8f.m8ghJvunOtVOsil9/aXMu7X6sWwXVdLwHafP2NQiOwm', '2565', '6601103077021', 'กิตติ', 'บุญมีรอด', '0896523654', 'วิศวกรรมศาสตร์', 'สาขาวิชาวิศวกรรมไฟฟ้า', 'เลิกเรียนแล้ว', '2025-04-19 13:06:45', '2025-04-19 20:33:09', 'active', '6803a3cd0afcb.jpg');
+(63, 'student1', '$2y$10$3RlXva.Q1RIELmRBR9AHlu/kktdY4IQSCst/wqvbr5USU/Jz/Bs.m', '2565', '6601103077011', 'ศราวุธ', 'เพิ่มรัตน์', '0889620832', 'วิทยาศาสตร์', 'สาขาวิชาเทคโนโลยีสารสนเทศ', 'เลิกเรียนแล้ว', '2025-04-19 13:01:32', '2025-04-27 21:33:38', 'active', 'uploads/68039eaca71c1.jpg'),
+(64, 'student2', '$2y$10$JCBU1bN8f.m8ghJvunOtVOsil9/aXMu7X6sWwXVdLwHafP2NQiOwm', '2565', '6601103077021', 'กิตติ', 'บุญมีรอด', '0896523654', 'วิศวกรรมศาสตร์', 'สาขาวิชาวิศวกรรมไฟฟ้า', 'เลิกเรียนแล้ว', '2025-04-19 13:06:45', '2025-04-27 20:24:47', 'active', '6803a3cd0afcb.jpg');
 
 -- --------------------------------------------------------
 
@@ -1546,6 +1569,12 @@ ALTER TABLE `majors`
   ADD KEY `faculty_id` (`faculty_id`);
 
 --
+-- Indexes for table `news`
+--
+ALTER TABLE `news`
+  ADD PRIMARY KEY (`news_id`);
+
+--
 -- Indexes for table `payment_info`
 --
 ALTER TABLE `payment_info`
@@ -1664,6 +1693,12 @@ ALTER TABLE `faculties`
 --
 ALTER TABLE `majors`
   MODIFY `major_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT for table `news`
+--
+ALTER TABLE `news`
+  MODIFY `news_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `payment_info`
