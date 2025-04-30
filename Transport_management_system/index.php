@@ -38,12 +38,23 @@ try {
         .navbar.scrolled {
             background-color: rgba(0, 123, 255, 0.95);
         }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px; /* ระยะห่างระหว่างโลโก้กับข้อความ */
+        }
         .navbar-brand img {
             height: 50px;
             transition: transform 0.3s ease;
         }
         .navbar-brand img:hover {
             transform: scale(1.1);
+        }
+        .system-title {
+            font-size: 1.2rem;
+            color: #ffffff;
+            font-weight: 400;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
         }
         .btn-login {
             background-color: #ffffff;
@@ -54,6 +65,7 @@ try {
             font-weight: 500;
             margin-left: 10px;
             transition: all 0.3s ease;
+            white-space: nowrap; /* ป้องกันข้อความปุ่มขึ้นบรรทัดใหม่ */
         }
         .btn-login:hover {
             background-color: #e0e0e0;
@@ -74,7 +86,7 @@ try {
         .news-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
+            gap: 30px;
             padding: 20px 0;
         }
         .news-card {
@@ -184,13 +196,35 @@ try {
 
         /* ปรับแต่งสำหรับหน้าจอขนาดเล็ก */
         @media (max-width: 768px) {
+            .navbar-brand {
+                flex-direction: row; /* ให้โลโก้และข้อความอยู่ในแถวเดียวกัน */
+                align-items: center;
+                gap: 5px; /* ลดระยะห่าง */
+                flex: 1; /* ให้ .navbar-brand ขยายเต็มที่ */
+                max-width: 70%; /* เพิ่มความกว้างเพื่อรองรับข้อความ */
+            }
             .navbar-brand img {
-                height: 40px;
+                height: 30px; /* ลดขนาดโลโก้ */
+            }
+            .system-title {
+                font-size: 0.65rem; /* ลดขนาดตัวอักษรเพื่อให้ข้อความแสดงครบ */
+                line-height: 1.1; /* ปรับระยะห่างระหว่างบรรทัด */
+                white-space: normal; /* อนุญาตให้ข้อความขึ้นบรรทัดใหม่ */
+            }
+            .navbar .container-fluid {
+                display: flex;
+                align-items: center;
+                justify-content: space-between; /* จัดให้โลโก้อยู่ซ้ายและปุ่มอยู่ขวา */
+                padding: 5px 10px; /* ลด padding เพื่อเพิ่มพื้นที่ */
+            }
+            .ms-auto.d-flex {
+                flex: 0 0 auto; /* ให้ปุ่มไม่ขยาย */
+                gap: 3px; /* ลดระยะห่างระหว่างปุ่ม */
             }
             .btn-login {
-                padding: 6px 12px;
-                font-size: 0.85rem;
-                margin-left: 5px;
+                padding: 4px 8px; /* ลดขนาดปุ่ม */
+                font-size: 0.7rem; /* ลดขนาดตัวอักษร */
+                margin-left: 3px;
             }
             .header-title {
                 font-size: 1.8rem;
@@ -198,79 +232,89 @@ try {
             }
             .news-container {
                 grid-template-columns: 1fr;
-                gap: 20px;
+                gap: 25px;
             }
             .news-card {
-                padding: 15px;
+                padding: 20px;
+                border-radius: 12px;
             }
             .news-card img {
-                height: 150px;
+                height: 180px;
             }
             .news-card h3 {
-                font-size: 1.3rem;
+                font-size: 1.4rem;
             }
             .news-card p {
-                font-size: 0.9rem;
+                font-size: 1rem;
+                line-height: 1.7;
             }
             .news-date {
-                font-size: 0.8rem;
+                font-size: 0.9rem;
             }
             .footer {
-                padding: 15px 0;
-                margin-top: 40px;
-                font-size: 0.85rem;
+                padding: 25px 0;
+                margin-top: 50px;
+                font-size: 0.95rem;
             }
             .wave {
-                top: -30px;
-                height: 30px;
+                top: -40px;
+                height: 40px;
             }
             .back-to-top {
-                width: 40px;
-                height: 40px;
-                bottom: 15px;
-                right: 15px;
-                font-size: 1.2rem;
+                width: 50px;
+                height: 50px;
+                bottom: 20px;
+                right: 20px;
+                font-size: 1.5rem;
+                background: linear-gradient(45deg, #ff4d4d, #ff8c1a);
             }
         }
 
         /* ปรับแต่งเพิ่มเติมสำหรับหน้าจอขนาดเล็กมาก (เช่น มือถือ < 576px) */
         @media (max-width: 576px) {
+            .navbar-brand {
+                max-width: 65%; /* ลดความกว้างเพิ่มเพื่อให้มีที่ว่างสำหรับปุ่ม */
+            }
             .navbar-brand img {
-                height: 35px;
+                height: 25px; /* ลดขนาดโลโก้เพิ่ม */
+            }
+            .system-title {
+                font-size: 0.55rem; /* ลดขนาดตัวอักษรเพิ่ม */
+                line-height: 1.1;
             }
             .btn-login {
-                padding: 5px 10px;
-                font-size: 0.75rem;
-                margin-left: 3px;
+                padding: 3px 6px; /* ลดขนาดปุ่มเพิ่ม */
+                font-size: 0.65rem; /* ลดขนาดตัวอักษรเพิ่ม */
+                margin-left: 2px;
             }
             .header-title {
                 font-size: 1.5rem;
-                margin: 20px 0;
+                margin: 25px 0;
             }
             .news-card {
-                padding: 10px;
+                padding: 15px;
             }
             .news-card img {
-                height: 120px;
+                height: 160px;
             }
             .news-card h3 {
-                font-size: 1.1rem;
+                font-size: 1.3rem;
             }
             .news-card p {
-                font-size: 0.85rem;
-                line-height: 1.5;
+                font-size: 0.95rem;
+                line-height: 1.6;
             }
             .news-date {
-                font-size: 0.75rem;
+                font-size: 0.85rem;
             }
             .container {
-                padding-left: 10px;
-                padding-right: 10px;
+                padding-left: 15px;
+                padding-right: 15px;
             }
             .footer {
-                padding: 10px 0;
-                margin-top: 30px;
-                font-size: 0.75rem;
+                padding: 20px 0;
+                margin-top: 40px;
+                font-size: 0.9rem;
             }
         }
     </style>
@@ -279,7 +323,11 @@ try {
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#"><img src="Logo/logo_index.png" alt="โลโก้ระบบจัดการการขนส่ง"></a>
+            <a class="navbar-brand" href="#">
+                <img src="Logo/logo_index.png" alt="โลโก้ระบบจัดการการขนส่ง">
+                <span class="system-title">ระบบบริหารจัดการรถตู้รับส่งนักศึกษามหาวิทยาลัยธนบุรี</span>
+            </a>
+            
             <div class="ms-auto d-flex">
                 <a href="Student/index.php" class="btn btn-login"><i class="fas fa-user-graduate me-1"></i>นักเรียน</a>
                 <a href="driver/driver_signin.php" class="btn btn-login"><i class="fas fa-car me-1"></i>คนขับรถ</a>
