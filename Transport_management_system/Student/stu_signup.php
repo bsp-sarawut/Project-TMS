@@ -149,6 +149,44 @@ require_once 'config/condb.php';
             text-decoration: underline;
         }
 
+        .modal-content {
+            background: #263238;
+            color: #eceff1;
+            border-radius: 15px;
+            border: none;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #b0bec5;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ff6f61;
+        }
+
+        .modal-body {
+            font-size: 0.9rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #b0bec5;
+        }
+
+        .btn-secondary {
+            background: #ffca28;
+            color: #1c2526;
+            border: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #ff8f00;
+            transform: translateY(-1px);
+        }
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
@@ -203,6 +241,14 @@ require_once 'config/condb.php';
                 padding: 8px;
                 border-radius: 10px;
             }
+
+            .modal-title {
+                font-size: 1.1rem;
+            }
+
+            .modal-body {
+                font-size: 0.85rem;
+            }
         }
 
         @media (max-width: 400px) {
@@ -251,6 +297,14 @@ require_once 'config/condb.php';
                 padding: 6px;
                 border-radius: 8px;
             }
+
+            .modal-title {
+                font-size: 1rem;
+            }
+
+            .modal-body {
+                font-size: 0.8rem;
+            }
         }
     </style>
 </head>
@@ -290,12 +344,12 @@ require_once 'config/condb.php';
     <form action="stu_signup_db.php" method="post" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="stu_username" class="form-label">ชื่อผู้ใช้</label>
-            <input type="text" class="form-control" name="stu_username" id="stu_username" required>
+            <input type="text" class="form-control" name="stu_username" id="stu_username" value="<?php echo isset($_POST['stu_username']) ? htmlspecialchars($_POST['stu_username']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
             <label for="stu_password" class="form-label">รหัสผ่าน</label>
-            <input type="password" class="form-control" name="stu_password" id="stu_password" required>
+            <input type="password" class="form-control" name="stu_password" id="stu_password" value="<?php echo isset($_POST['stu_password']) ? htmlspecialchars($_POST['stu_password']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
@@ -305,7 +359,8 @@ require_once 'config/condb.php';
                 <?php
                     $current_year = date("Y") + 543;
                     for ($i = $current_year - 4; $i <= $current_year; $i++) {
-                        echo "<option value='$i'>$i</option>";
+                        $selected = (isset($_POST['stu_year']) && $_POST['stu_year'] == $i) ? 'selected' : '';
+                        echo "<option value='$i' $selected>$i</option>";
                     }
                 ?>
             </select>
@@ -313,33 +368,33 @@ require_once 'config/condb.php';
 
         <div class="mb-3">
             <label for="stu_license" class="form-label">รหัสนักศึกษา</label>
-            <input type="text" class="form-control" name="stu_license" id="stu_license" required>
+            <input type="text" class="form-control" name="stu_license" id="stu_license" value="<?php echo isset($_POST['stu_license']) ? htmlspecialchars($_POST['stu_license']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
             <label for="stu_name" class="form-label">ชื่อ</label>
-            <input type="text" class="form-control" name="stu_name" id="stu_name" required>
+            <input type="text" class="form-control" name="stu_name" id="stu_name" value="<?php echo isset($_POST['stu_name']) ? htmlspecialchars($_POST['stu_name']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
             <label for="stu_lastname" class="form-label">นามสกุล</label>
-            <input type="text" class="form-control" name="stu_lastname" id="stu_lastname" required>
+            <input type="text" class="form-control" name="stu_lastname" id="stu_lastname" value="<?php echo isset($_POST['stu_lastname']) ? htmlspecialchars($_POST['stu_lastname']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
             <label for="stu_tel" class="form-label">เบอร์โทร</label>
-            <input type="tel" class="form-control" name="stu_tel" id="stu_tel" required>
+            <input type="tel" class="form-control" name="stu_tel" id="stu_tel" value="<?php echo isset($_POST['stu_tel']) ? htmlspecialchars($_POST['stu_tel']) : ''; ?>" required>
         </div>
 
         <div class="mb-3">
             <label for="stu_faculty" class="form-label">คณะ</label>
             <select class="form-select" name="stu_faculty" id="stu_faculty" onchange="updateMajors()" required>
                 <option value="" selected>เลือกคณะ</option>
-                <option value="วิศวกรรมศาสตร์">วิศวกรรมศาสตร์</option>
-                <option value="เทคโนโลยี">เทคโนโลยี</option>
-                <option value="บริหารธุรกิจ">บริหารธุรกิจ</option>
-                <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
-                <option value="บัญชี">บัญชี</option>
+                <option value="วิศวกรรมศาสตร์" <?php echo isset($_POST['stu_faculty']) && $_POST['stu_faculty'] == 'วิศวกรรมศาสตร์' ? 'selected' : ''; ?>>วิศวกรรมศาสตร์</option>
+                <option value="เทคโนโลยี" <?php echo isset($_POST['stu_faculty']) && $_POST['stu_faculty'] == 'เทคโนโลยี' ? 'selected' : ''; ?>>เทคโนโลยี</option>
+                <option value="บริหารธุรกิจ" <?php echo isset($_POST['stu_faculty']) && $_POST['stu_faculty'] == 'บริหารธุรกิจ' ? 'selected' : ''; ?>>บริหารธุรกิจ</option>
+                <option value="วิทยาศาสตร์" <?php echo isset($_POST['stu_faculty']) && $_POST['stu_faculty'] == 'วิทยาศาสตร์' ? 'selected' : ''; ?>>วิทยาศาสตร์</option>
+                <option value="บัญชี" <?php echo isset($_POST['stu_faculty']) && $_POST['stu_faculty'] == 'บัญชี' ? 'selected' : ''; ?>>บัญชี</option>
             </select>
         </div>
 
@@ -347,6 +402,24 @@ require_once 'config/condb.php';
             <label for="stu_major" class="form-label">สาขา</label>
             <select class="form-select" name="stu_major" id="stu_major" required>
                 <option value="" selected>เลือกสาขา</option>
+                <?php
+                if (isset($_POST['stu_faculty'])) {
+                    $majorsByFaculty = [
+                        "วิศวกรรมศาสตร์" => ["สาขาวิชาวิศวกรรมเครื่องกล", "สาขาวิชาวิศวกรรมไฟฟ้า", "สาขาวิชาวิศวกรรมอุตสาหการ"],
+                        "เทคโนโลยี" => ["สาขาวิชาเทคโนโลยีการจัดการอุตสาหกรรม"],
+                        "บริหารธุรกิจ" => ["สาขาวิชาการบัญชี", "สาขาวิชาคอมพิวเตอร์ธุรกิจ", "สาขาวิชาการจัดการทั่วไป"],
+                        "วิทยาศาสตร์" => ["สาขาวิชาเทคโนโลยีสารสนเทศ", "สาขาวิชาเทคโนโลยีคอมพิวเตอร์"],
+                        "บัญชี" => ["สาขาวิชาการบัญชี"]
+                    ];
+                    $selectedFaculty = $_POST['stu_faculty'];
+                    if (isset($majorsByFaculty[$selectedFaculty])) {
+                        foreach ($majorsByFaculty[$selectedFaculty] as $major) {
+                            $selected = (isset($_POST['stu_major']) && $_POST['stu_major'] == $major) ? 'selected' : '';
+                            echo "<option value='$major' $selected>$major</option>";
+                        }
+                    }
+                }
+                ?>
             </select>
         </div>
 
@@ -359,6 +432,24 @@ require_once 'config/condb.php';
     </form>
 
     <p class="footer mt-3">เป็นสมาชิกแล้ว? <a href="index.php">เข้าสู่ระบบ</a></p>
+</div>
+
+<!-- Bootstrap Modal สำหรับแจ้งเตือน -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="errorModalLabel">ข้อผิดพลาด</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalBody">
+                <!-- ข้อความแจ้งเตือนจะแสดงที่นี่ -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ตกลง</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Bootstrap JS -->
@@ -428,6 +519,63 @@ require_once 'config/condb.php';
         button.style.transform = 'scale(1)';
     });
 
+    // Validation with Modal on Blur
+    const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+    const errorModalBody = document.getElementById('errorModalBody');
+    const errorModalLabel = document.getElementById('errorModalLabel');
+
+    // ตรวจสอบรหัสผ่านเมื่อออกจากช่อง
+    const passwordInput = document.getElementById('stu_password');
+    passwordInput.addEventListener('blur', () => {
+        const password = passwordInput.value.trim();
+        const errors = [];
+
+        if (password === '') return; // ไม่ตรวจสอบถ้าช่องว่าง
+
+        // ตรวจสอบเงื่อนไขรหัสผ่าน
+        if (password.length < 8) {
+            errors.push('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
+        }
+        if (!/[a-z]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว');
+        }
+        if (!/[A-Z]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว');
+        }
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น !, @, #, $)');
+        }
+
+        // แสดง Modal ถ้ามีข้อผิดพลาด
+        if (errors.length > 0) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดรหัสผ่าน';
+            errorModalBody.innerHTML = errors.join('<br>');
+            errorModal.show();
+        }
+    });
+
+    // ตรวจสอบเบอร์โทรเมื่อออกจากช่อง
+    const telInput = document.getElementById('stu_tel');
+    telInput.addEventListener('blur', () => {
+        const tel = telInput.value.trim();
+        const errors = [];
+
+        if (tel === '') return; // ไม่ตรวจสอบถ้าช่องว่าง
+
+        // ตรวจสอบรูปแบบเบอร์โทร
+        const telPattern = /^[0-9]{10}$/;
+        if (!telPattern.test(tel)) {
+            errors.push('เบอร์โทรต้องเป็นตัวเลข 10 หลัก!');
+        }
+
+        // แสดง Modal ถ้ามีข้อผิดพลาด
+        if (errors.length > 0) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดเบอร์โทร';
+            errorModalBody.innerHTML = errors.join('<br>');
+            errorModal.show();
+        }
+    });
+
     // ตรวจสอบฟอร์มก่อนส่ง
     const form = document.querySelector('form');
     form.addEventListener('submit', (e) => {
@@ -435,19 +583,34 @@ require_once 'config/condb.php';
         const password = document.getElementById('stu_password').value.trim();
         const tel = document.getElementById('stu_tel').value.trim();
 
-        // ตรวจสอบความยาวรหัสผ่าน (อย่างน้อย 8 ตัวอักษร)
+        const errors = [];
+
+        // ตรวจสอบรหัสผ่าน
         if (password.length < 8) {
-            e.preventDefault();
-            alert('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร!');
-            return;
+            errors.push('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
+        }
+        if (!/[a-z]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีตัวพิมพ์เล็กอย่างน้อย 1 ตัว');
+        }
+        if (!/[A-Z]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีตัวพิมพ์ใหญ่อย่างน้อย 1 ตัว');
+        }
+        if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+            errors.push('รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น !, @, #, $)');
         }
 
-        // ตรวจสอบรูปแบบเบอร์โทร (ต้องเป็นตัวเลข 10 หลัก)
+        // ตรวจสอบรูปแบบเบอร์โทร
         const telPattern = /^[0-9]{10}$/;
         if (!telPattern.test(tel)) {
+            errors.push('เบอร์โทรต้องเป็นตัวเลข 10 หลัก!');
+        }
+
+        // แสดง Modal ถ้ามีข้อผิดพลาด
+        if (errors.length > 0) {
             e.preventDefault();
-            alert('เบอร์โทรต้องเป็นตัวเลข 10 หลัก!');
-            return;
+            errorModalLabel.textContent = 'ข้อผิดพลาด';
+            errorModalBody.innerHTML = errors.join('<br>');
+            errorModal.show();
         }
     });
 </script>
