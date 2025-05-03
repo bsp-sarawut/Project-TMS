@@ -1,11 +1,21 @@
 <?php
-    include('navbar.php');
-    session_start();
-    // ตรวจสอบว่าคนขับล็อกอินหรือยัง
-    if (!isset($_SESSION['driver_user'])) {
-        header("Location: driver_login.php");
-        exit();
-    }
+session_start();
+require_once("config/condb.php");
+
+// ตรวจสอบว่าคนขับล็อกอินหรือยัง
+if (!isset($_SESSION['driver_user'])) {
+    header("Location: driver_signin.php");
+    exit();
+}
+
+// ตรวจสอบว่าเป็นการเข้าสู่ระบบครั้งแรกหรือไม่
+if (isset($_SESSION['first_login']) && $_SESSION['first_login'] == 1) {
+    header("Location: driver_change_password.php");
+    exit();
+}
+
+// ทำการ include navbar หลังจาก session_start และการตรวจสอบสิทธิ์
+include('navbar.php');
 ?>
 
 <!DOCTYPE html>
@@ -14,13 +24,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>แดชบอร์ดคนขับ</title>
-    <!-- Bootstrap 5 CSS -->
+    <link rel="icon" type="image/x-icon" href="../Logo/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome Icons -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         body {
@@ -124,8 +131,19 @@
 </head>
 <body>
     <div class="container mt-5">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-success" role="alert">
+                    <h4 class="alert-heading mb-2"><i class="fas fa-user-check me-2"></i>ยินดีต้อนรับ <?php echo $_SESSION['driver_name'] . ' ' . $_SESSION['driver_lastname']; ?></h4>
+                    <?php if (isset($_SESSION['success'])) { ?>
+                        <hr>
+                        <p class="mb-0"><?php echo $_SESSION['success']; unset($_SESSION['success']); ?></p>
+                    <?php } ?>
+                </div>
+            </div>
+        </div>
+
         <div class="row text-center">
-            <!-- ดูคิวงาน -->
             <div class="col-12 col-md-3">
                 <div class="card">
                     <div class="card-body">
@@ -137,33 +155,9 @@
                 </div>
             </div>
 
-            <!-- อัปเดตสถานะรถ
-            <div class="col-12 col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <i class="fas fa-sync-alt"></i>
-                        <h5 class="card-title">อัปเดตสถานะรถ</h5>
-                        <p class="card-text">เปลี่ยนสถานะการเดินรถ</p>
-                        <a href="update_status.php" class="btn btn-primary">อัปเดตสถานะ</a>
-                    </div>
-                </div>
             </div>
-
-            <!-- เพิ่มส่วนตั้งค่าโปรไฟล์กลับมา -->
-            <!-- <div class="col-12 col-md-3">
-                <div class="card">
-                    <div class="card-body">
-                        <i class="fas fa-user-cog"></i>
-                        <h5 class="card-title">ตั้งค่าโปรไฟล์</h5>
-                        <p class="card-text">จัดการข้อมูลส่วนตัว</p>
-                        <a href="driver_profile.php" class="btn btn-primary">ตั้งค่า</a>
-                    </div>
-                </div>
-            </div> -->
-        </div>
     </div>
 
-    <!-- Bootstrap 5 JS, Popper.js -->
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 </body>

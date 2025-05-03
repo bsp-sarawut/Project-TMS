@@ -27,8 +27,17 @@ if (isset($_POST["signin"])) {
             if ($row && password_verify($driver_password, $row['driver_password'])) {
                 $_SESSION['driver_id'] = $row['driver_id'];
                 $_SESSION['driver_user'] = $row['driver_user'];
+                $_SESSION['driver_name'] = $row['driver_name'];
+                $_SESSION['driver_lastname'] = $row['driver_lastname'];
+                $_SESSION['first_login'] = $row['first_login'];
                 $_SESSION['success'] = "เข้าสู่ระบบสำเร็จ";
-                header("location:driver.php"); // Redirect to driver dashboard
+                
+                // ตรวจสอบว่าเป็นการเข้าสู่ระบบครั้งแรกหรือไม่
+                if ($row['first_login'] == 1) {
+                    header("location:driver_change_password.php"); // ไปยังหน้าเปลี่ยนรหัสผ่านสำหรับการเข้าสู่ระบบครั้งแรก
+                } else {
+                    header("location:driver.php"); // ไปยังหน้าแดชบอร์ดคนขับ
+                }
             } else {
                 $_SESSION['error'] = "ชื่อผู้ใช้หรือรหัสผ่านคนขับผิด";
                 header("location:driver_signin.php");
@@ -52,6 +61,8 @@ if (isset($_POST["signin"])) {
     <!-- Bootstrap 5 CSS -->
     <link rel="icon" type="image/x-icon" href="../Logo/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
