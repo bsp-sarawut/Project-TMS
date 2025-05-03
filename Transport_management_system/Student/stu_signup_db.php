@@ -1,9 +1,8 @@
 <?php 
-
 session_start();
 require_once("config/condb.php");
 
-if(isset($_POST["signup"])){
+if (isset($_POST["signup"])) {
     $stu_username = trim($_POST["stu_username"]);
     $stu_password = $_POST["stu_password"];
     $stu_year = $_POST["stu_year"];
@@ -27,7 +26,17 @@ if(isset($_POST["signup"])){
     $check_username->bindParam(":stu_username", $stu_username);
     $check_username->execute();
     if ($check_username->fetch(PDO::FETCH_ASSOC)) {
-        $_SESSION["warning"] = "ชื่อผู้ใช้นี้มีอยู่แล้ว <a href='index.php'>คลิกที่นี่เพื่อเข้าสู่ระบบ</a>";
+        $_SESSION["error"] = "ชื่อผู้ใช้นี้มีอยู่แล้ว <a href='index.php'>คลิกที่นี่เพื่อเข้าสู่ระบบ</a>";
+        header("location:stu_signup.php");
+        exit();
+    }
+
+    // ตรวจสอบรหัสนักศึกษาซ้ำ
+    $check_license = $conn->prepare("SELECT stu_license FROM students WHERE stu_license = :stu_license");
+    $check_license->bindParam(":stu_license", $stu_license);
+    $check_license->execute();
+    if ($check_license->fetch(PDO::FETCH_ASSOC)) {
+        $_SESSION["error"] = "รหัสนักศึกษา " . htmlspecialchars($stu_license) . " นี้ถูกใช้แล้ว กรุณาตรวจสอบรหัสนักศึกษา";
         header("location:stu_signup.php");
         exit();
     }

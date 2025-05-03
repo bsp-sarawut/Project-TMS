@@ -10,6 +10,7 @@ require_once 'config/condb.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ลงทะเบียน - นักศึกษา</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         body {
@@ -71,7 +72,7 @@ require_once 'config/condb.php';
         }
 
         .form-control, .form-select {
-            border-radius: 15px;
+            border-radius: 15px !important;
             padding: 10px;
             border: 1px solid #b0bec5;
             background: #2c3e50;
@@ -81,7 +82,7 @@ require_once 'config/condb.php';
         }
 
         .form-control:focus, .form-select:focus {
-            border-color: #ffca28;
+            border-color: #ffca28 !important;
             box-shadow: 0 0 6px rgba(255, 202, 40, 0.4);
             background: #2c3e50;
             color: #eceff1;
@@ -187,13 +188,32 @@ require_once 'config/condb.php';
             transform: translateY(-1px);
         }
 
-        /* Animations */
+        .input-group {
+            position: relative;
+            border-radius: 15px !important;
+            overflow: hidden;
+        }
+
+        .valid-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #28a745;
+            font-size: 1.2rem;
+            display: none;
+        }
+
+        .form-control.valid {
+            padding-right: 40px;
+            border-radius: 15px !important;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* รองรับการแสดงผลบนมือถือ */
         @media (max-width: 576px) {
             .signup-container {
                 width: 90%;
@@ -219,7 +239,7 @@ require_once 'config/condb.php';
             .form-control, .form-select {
                 padding: 8px;
                 font-size: 0.85rem;
-                border-radius: 10px;
+                border-radius: 10px !important;
             }
 
             .btn-primary {
@@ -249,6 +269,20 @@ require_once 'config/condb.php';
             .modal-body {
                 font-size: 0.85rem;
             }
+
+            .valid-icon {
+                right: 10px;
+                font-size: 1rem;
+            }
+
+            .form-control.valid {
+                padding-right: 30px;
+                border-radius: 10px !important;
+            }
+
+            .input-group {
+                border-radius: 10px !important;
+            }
         }
 
         @media (max-width: 400px) {
@@ -275,7 +309,7 @@ require_once 'config/condb.php';
             .form-control, .form-select {
                 padding: 6px;
                 font-size: 0.8rem;
-                border-radius: 8px;
+                border-radius: 8px !important;
             }
 
             .btn-primary {
@@ -305,6 +339,20 @@ require_once 'config/condb.php';
             .modal-body {
                 font-size: 0.8rem;
             }
+
+            .valid-icon {
+                right: 8px;
+                font-size: 0.9rem;
+            }
+
+            .form-control.valid {
+                padding-right: 25px;
+                border-radius: 8px !important;
+            }
+
+            .input-group {
+                border-radius: 8px !important;
+            }
         }
     </style>
 </head>
@@ -315,19 +363,10 @@ require_once 'config/condb.php';
     <hr>
 
     <?php if (isset($_SESSION["error"])) { ?>
-        <div class="alert alert-danger" role="alert">
+        <div class="alert alert-danger" role="alert" id="errorAlert" style="display:none;">
             <?php 
                 echo $_SESSION["error"];
                 unset($_SESSION["error"]);
-            ?>
-        </div>
-    <?php } ?>
-
-    <?php if (isset($_SESSION["warning"])) { ?>
-        <div class="alert alert-warning" role="alert">
-            <?php 
-                echo $_SESSION["warning"];
-                unset($_SESSION["warning"]);
             ?>
         </div>
     <?php } ?>
@@ -341,15 +380,21 @@ require_once 'config/condb.php';
         </div>
     <?php } ?>
 
-    <form action="stu_signup_db.php" method="post" enctype="multipart/form-data">
+    <form action="stu_signup_db.php" method="post" enctype="multipart/form-data" id="signupForm">
         <div class="mb-3">
             <label for="stu_username" class="form-label">ชื่อผู้ใช้</label>
-            <input type="text" class="form-control" name="stu_username" id="stu_username" value="<?php echo isset($_POST['stu_username']) ? htmlspecialchars($_POST['stu_username']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="text" class="form-control" name="stu_username" id="stu_username" value="<?php echo isset($_POST['stu_username']) ? htmlspecialchars($_POST['stu_username']) : ''; ?>" required>
+                <span class="valid-icon" id="usernameValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
             <label for="stu_password" class="form-label">รหัสผ่าน</label>
-            <input type="password" class="form-control" name="stu_password" id="stu_password" value="<?php echo isset($_POST['stu_password']) ? htmlspecialchars($_POST['stu_password']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="password" class="form-control" name="stu_password" id="stu_password" value="<?php echo isset($_POST['stu_password']) ? htmlspecialchars($_POST['stu_password']) : ''; ?>" required>
+                <span class="valid-icon" id="passwordValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
@@ -368,22 +413,34 @@ require_once 'config/condb.php';
 
         <div class="mb-3">
             <label for="stu_license" class="form-label">รหัสนักศึกษา</label>
-            <input type="text" class="form-control" name="stu_license" id="stu_license" value="<?php echo isset($_POST['stu_license']) ? htmlspecialchars($_POST['stu_license']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="text" class="form-control" name="stu_license" id="stu_license" value="<?php echo isset($_POST['stu_license']) ? htmlspecialchars($_POST['stu_license']) : ''; ?>" required>
+                <span class="valid-icon" id="licenseValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
             <label for="stu_name" class="form-label">ชื่อ</label>
-            <input type="text" class="form-control" name="stu_name" id="stu_name" value="<?php echo isset($_POST['stu_name']) ? htmlspecialchars($_POST['stu_name']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="text" class="form-control" name="stu_name" id="stu_name" value="<?php echo isset($_POST['stu_name']) ? htmlspecialchars($_POST['stu_name']) : ''; ?>" required>
+                <span class="valid-icon" id="nameValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
             <label for="stu_lastname" class="form-label">นามสกุล</label>
-            <input type="text" class="form-control" name="stu_lastname" id="stu_lastname" value="<?php echo isset($_POST['stu_lastname']) ? htmlspecialchars($_POST['stu_lastname']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="text" class="form-control" name="stu_lastname" id="stu_lastname" value="<?php echo isset($_POST['stu_lastname']) ? htmlspecialchars($_POST['stu_lastname']) : ''; ?>" required>
+                <span class="valid-icon" id="lastnameValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
             <label for="stu_tel" class="form-label">เบอร์โทร</label>
-            <input type="tel" class="form-control" name="stu_tel" id="stu_tel" value="<?php echo isset($_POST['stu_tel']) ? htmlspecialchars($_POST['stu_tel']) : ''; ?>" required>
+            <div class="input-group">
+                <input type="tel" class="form-control" name="stu_tel" id="stu_tel" value="<?php echo isset($_POST['stu_tel']) ? htmlspecialchars($_POST['stu_tel']) : ''; ?>" required>
+                <span class="valid-icon" id="telValidIcon"><i class="bi bi-check-circle-fill"></i></span>
+            </div>
         </div>
 
         <div class="mb-3">
@@ -452,7 +509,8 @@ require_once 'config/condb.php';
     </div>
 </div>
 
-<!-- Bootstrap JS -->
+<!-- jQuery และ Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -519,20 +577,53 @@ require_once 'config/condb.php';
         button.style.transform = 'scale(1)';
     });
 
-    // Validation with Modal on Blur
+    // Validation with Modal on Blur (AJAX และเงื่อนไขอื่น ๆ)
     const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
     const errorModalBody = document.getElementById('errorModalBody');
     const errorModalLabel = document.getElementById('errorModalLabel');
 
+    // ตรวจสอบชื่อผู้ใช้เมื่อออกจากช่อง
+    const usernameInput = document.getElementById('stu_username');
+    usernameInput.addEventListener('blur', function() {
+        const username = this.value.trim();
+        if (username === '') return;
+
+        const usernamePattern = /^[a-zA-Z0-9]{4,20}$/;
+        if (!usernamePattern.test(username)) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดชื่อผู้ใช้';
+            errorModalBody.innerHTML = 'ชื่อผู้ใช้ต้องมีเฉพาะตัวอักษรและตัวเลข ความยาว 4-20 ตัวอักษร';
+            errorModal.show();
+            usernameInput.classList.remove('valid');
+            document.getElementById('usernameValidIcon').style.display = 'none';
+            return;
+        }
+
+        $.ajax({
+            url: 'check_duplicate.php',
+            type: 'POST',
+            data: { type: 'username', value: username },
+            success: function(response) {
+                if (response === 'exists') {
+                    errorModalLabel.textContent = 'ข้อผิดพลาดชื่อผู้ใช้';
+                    errorModalBody.innerHTML = 'ชื่อผู้ใช้ ' + username + ' นี้มีอยู่แล้ว <a href="index.php">คลิกที่นี่เพื่อเข้าสู่ระบบ</a>';
+                    errorModal.show();
+                    usernameInput.classList.remove('valid');
+                    document.getElementById('usernameValidIcon').style.display = 'none';
+                } else {
+                    usernameInput.classList.add('valid');
+                    document.getElementById('usernameValidIcon').style.display = 'block';
+                }
+            }
+        });
+    });
+
     // ตรวจสอบรหัสผ่านเมื่อออกจากช่อง
     const passwordInput = document.getElementById('stu_password');
-    passwordInput.addEventListener('blur', () => {
-        const password = passwordInput.value.trim();
+    passwordInput.addEventListener('blur', function() {
+        const password = this.value.trim();
+        if (password === '') return;
+
         const errors = [];
-
-        if (password === '') return; // ไม่ตรวจสอบถ้าช่องว่าง
-
-        // ตรวจสอบเงื่อนไขรหัสผ่าน
         if (password.length < 8) {
             errors.push('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
         }
@@ -546,33 +637,107 @@ require_once 'config/condb.php';
             errors.push('รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น !, @, #, $)');
         }
 
-        // แสดง Modal ถ้ามีข้อผิดพลาด
         if (errors.length > 0) {
             errorModalLabel.textContent = 'ข้อผิดพลาดรหัสผ่าน';
             errorModalBody.innerHTML = errors.join('<br>');
             errorModal.show();
+            passwordInput.classList.remove('valid');
+            document.getElementById('passwordValidIcon').style.display = 'none';
+        } else {
+            passwordInput.classList.add('valid');
+            document.getElementById('passwordValidIcon').style.display = 'block';
+        }
+    });
+
+    // ตรวจสอบรหัสนักศึกษาเมื่อออกจากช่อง
+    const licenseInput = document.getElementById('stu_license');
+    licenseInput.addEventListener('blur', function() {
+        const license = this.value.trim();
+        if (license === '') return;
+
+        const licensePattern = /^[0-9]{13}$/;
+        if (!licensePattern.test(license)) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดรหัสนักศึกษา';
+            errorModalBody.innerHTML = 'รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก';
+            errorModal.show();
+            licenseInput.classList.remove('valid');
+            document.getElementById('licenseValidIcon').style.display = 'none';
+            return;
+        }
+
+        $.ajax({
+            url: 'check_duplicate.php',
+            type: 'POST',
+            data: { type: 'license', value: license },
+            success: function(response) {
+                if (response === 'exists') {
+                    errorModalLabel.textContent = 'ข้อผิดพลาดรหัสนักศึกษา';
+                    errorModalBody.innerHTML = 'รหัสนักศึกษา ' + license + ' นี้ถูกใช้แล้ว กรุณาตรวจสอบรหัสนักศึกษา';
+                    errorModal.show();
+                    licenseInput.classList.remove('valid');
+                    document.getElementById('licenseValidIcon').style.display = 'none';
+                } else {
+                    licenseInput.classList.add('valid');
+                    document.getElementById('licenseValidIcon').style.display = 'block';
+                }
+            }
+        });
+    });
+
+    // ตรวจสอบชื่อเมื่อออกจากช่อง
+    const nameInput = document.getElementById('stu_name');
+    nameInput.addEventListener('blur', function() {
+        const name = this.value.trim();
+        if (name === '') return;
+
+        const namePattern = /^[ก-๙\s]{2,50}$/;
+        if (!namePattern.test(name)) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดชื่อ';
+            errorModalBody.innerHTML = 'ชื่อต้องเป็นตัวอักษรภาษาไทยเท่านั้น ความยาว 2-50 ตัวอักษร';
+            errorModal.show();
+            nameInput.classList.remove('valid');
+            document.getElementById('nameValidIcon').style.display = 'none';
+        } else {
+            nameInput.classList.add('valid');
+            document.getElementById('nameValidIcon').style.display = 'block';
+        }
+    });
+
+    // ตรวจสอบนามสกุลเมื่อออกจากช่อง
+    const lastnameInput = document.getElementById('stu_lastname');
+    lastnameInput.addEventListener('blur', function() {
+        const lastname = this.value.trim();
+        if (lastname === '') return;
+
+        const lastnamePattern = /^[ก-๙\s]{2,50}$/;
+        if (!lastnamePattern.test(lastname)) {
+            errorModalLabel.textContent = 'ข้อผิดพลาดนามสกุล';
+            errorModalBody.innerHTML = 'นามสกุลต้องเป็นตัวอักษรภาษาไทยเท่านั้น ความยาว 2-50 ตัวอักษร';
+            errorModal.show();
+            lastnameInput.classList.remove('valid');
+            document.getElementById('lastnameValidIcon').style.display = 'none';
+        } else {
+            lastnameInput.classList.add('valid');
+            document.getElementById('lastnameValidIcon').style.display = 'block';
         }
     });
 
     // ตรวจสอบเบอร์โทรเมื่อออกจากช่อง
     const telInput = document.getElementById('stu_tel');
-    telInput.addEventListener('blur', () => {
-        const tel = telInput.value.trim();
-        const errors = [];
+    telInput.addEventListener('blur', function() {
+        const tel = this.value.trim();
+        if (tel === '') return;
 
-        if (tel === '') return; // ไม่ตรวจสอบถ้าช่องว่าง
-
-        // ตรวจสอบรูปแบบเบอร์โทร
         const telPattern = /^[0-9]{10}$/;
         if (!telPattern.test(tel)) {
-            errors.push('เบอร์โทรต้องเป็นตัวเลข 10 หลัก!');
-        }
-
-        // แสดง Modal ถ้ามีข้อผิดพลาด
-        if (errors.length > 0) {
             errorModalLabel.textContent = 'ข้อผิดพลาดเบอร์โทร';
-            errorModalBody.innerHTML = errors.join('<br>');
+            errorModalBody.innerHTML = 'เบอร์โทรต้องเป็นตัวเลข 10 หลัก!';
             errorModal.show();
+            telInput.classList.remove('valid');
+            document.getElementById('telValidIcon').style.display = 'none';
+        } else {
+            telInput.classList.add('valid');
+            document.getElementById('telValidIcon').style.display = 'block';
         }
     });
 
@@ -581,11 +746,18 @@ require_once 'config/condb.php';
     form.addEventListener('submit', (e) => {
         const username = document.getElementById('stu_username').value.trim();
         const password = document.getElementById('stu_password').value.trim();
+        const license = document.getElementById('stu_license').value.trim();
+        const name = document.getElementById('stu_name').value.trim();
+        const lastname = document.getElementById('stu_lastname').value.trim();
         const tel = document.getElementById('stu_tel').value.trim();
 
         const errors = [];
 
-        // ตรวจสอบรหัสผ่าน
+        const usernamePattern = /^[a-zA-Z0-9]{4,20}$/;
+        if (!usernamePattern.test(username)) {
+            errors.push('ชื่อผู้ใช้ต้องมีเฉพาะตัวอักษรและตัวเลข ความยาว 4-20 ตัวอักษร');
+        }
+
         if (password.length < 8) {
             errors.push('รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร');
         }
@@ -599,18 +771,42 @@ require_once 'config/condb.php';
             errors.push('รหัสผ่านต้องมีอักขระพิเศษอย่างน้อย 1 ตัว (เช่น !, @, #, $)');
         }
 
-        // ตรวจสอบรูปแบบเบอร์โทร
+        const licensePattern = /^[0-9]{13}$/;
+        if (!licensePattern.test(license)) {
+            errors.push('รหัสนักศึกษาต้องเป็นตัวเลข 13 หลัก');
+        }
+
+        const namePattern = /^[ก-๙\s]{2,50}$/;
+        if (!namePattern.test(name)) {
+            errors.push('ชื่อต้องเป็นตัวอักษรภาษาไทยเท่านั้น ความยาว 2-50 ตัวอักษร');
+        }
+
+        const lastnamePattern = /^[ก-๙\s]{2,50}$/;
+        if (!lastnamePattern.test(lastname)) {
+            errors.push('นามสกุลต้องเป็นตัวอักษรภาษาไทยเท่านั้น ความยาว 2-50 ตัวอักษร');
+        }
+
         const telPattern = /^[0-9]{10}$/;
         if (!telPattern.test(tel)) {
             errors.push('เบอร์โทรต้องเป็นตัวเลข 10 หลัก!');
         }
 
-        // แสดง Modal ถ้ามีข้อผิดพลาด
         if (errors.length > 0) {
             e.preventDefault();
             errorModalLabel.textContent = 'ข้อผิดพลาด';
             errorModalBody.innerHTML = errors.join('<br>');
             errorModal.show();
+        }
+    });
+
+    // แสดง Modal หากมีข้อผิดพลาดจาก Server
+    document.addEventListener('DOMContentLoaded', () => {
+        const errorAlert = document.getElementById('errorAlert');
+        if (errorAlert && errorAlert.textContent.trim() !== '') {
+            errorModalLabel.textContent = 'ข้อผิดพลาด';
+            errorModalBody.innerHTML = errorAlert.textContent;
+            errorModal.show();
+            errorAlert.style.display = 'none'; // ซ่อน alert หลังจากแสดงใน modal
         }
     });
 </script>
