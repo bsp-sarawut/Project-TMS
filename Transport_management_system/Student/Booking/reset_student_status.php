@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once("config/condb.php");
+require_once("condb.php");
 
 header('Content-Type: application/json');
 
@@ -9,12 +9,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!isset($_GET['queue_id'])) {
+if (!isset($_POST['queue_id'])) { // เปลี่ยนจาก $_GET เป็น $_POST
     echo json_encode(['success' => false, 'error' => 'Queue ID is required']);
     exit;
 }
 
-$queue_id = (int)$_GET['queue_id'];
+$queue_id = (int)$_POST['queue_id']; // เปลี่ยนจาก $_GET เป็น $_POST
 
 try {
     $conn->beginTransaction();

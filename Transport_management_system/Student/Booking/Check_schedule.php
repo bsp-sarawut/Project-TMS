@@ -223,6 +223,7 @@ try {
         .table tbody tr {
             border-bottom: 1px solid #37474f;
             transition: background 0.3s ease;
+            color: #eceff1;
         }
         .table tbody tr:hover {
             background: #37474f;
