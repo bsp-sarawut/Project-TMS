@@ -641,6 +641,7 @@ $provinces = $provinceQuery->fetchAll(PDO::FETCH_ASSOC);
                                             <select name="payment_status" class="form-select form-select-sm">
                                                 <option value="Pending Confirmation" ${reg.payment_status === 'Pending Confirmation' ? 'selected' : ''}>Pending Confirmation</option>
                                                 <option value="Paid" ${reg.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
+                                                <option value="Upload again!" ${reg.payment_status === 'Upload again!' ? 'selected' : ''}>Upload again</option>
                                             </select>
                                             <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check"></i></button>
                                         </form>

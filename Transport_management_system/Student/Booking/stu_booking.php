@@ -30,7 +30,7 @@ $image_path = $stu_img && file_exists($stu_img) ? $stu_img : $default_img;
             margin: 0;
             position: relative;
             overflow-x: hidden;
-            padding-top: 80px; /* เพิ่ม padding เพื่อไม่ให้เนื้อหาทับกับ Navbar */
+            padding-top: 80px;
         }
 
         .container {
@@ -76,6 +76,8 @@ $image_path = $stu_img && file_exists($stu_img) ? $stu_img : $default_img;
             height: 5px;
             background: linear-gradient(90deg, #ffca28, #ff8f00);
             transition: height 0.3s ease;
+            z-index: 0; /* ให้ ::before อยู่ด้านล่าง */
+            pointer-events: none; /* ป้องกันการรบกวนการคลิก */
         }
 
         .card:hover::before {
@@ -95,6 +97,8 @@ $image_path = $stu_img && file_exists($stu_img) ? $stu_img : $default_img;
             display: flex;
             flex-direction: column;
             flex-grow: 1;
+            position: relative;
+            z-index: 1; /* ให้เนื้อหาอยู่ด้านบน */
         }
 
         .card i {
@@ -133,6 +137,8 @@ $image_path = $stu_img && file_exists($stu_img) ? $stu_img : $default_img;
             color: #1c2526;
             transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
             margin-top: auto;
+            position: relative;
+            z-index: 2; /* ให้ปุ่มกดได้ */
         }
 
         .btn-primary:hover {

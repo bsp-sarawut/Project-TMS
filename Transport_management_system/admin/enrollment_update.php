@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['payment
     $id = $_POST['id'];
     $new_status = $_POST['payment_status'];
 
-    $valid_statuses = ['Paid', 'Pending Confirmation'];
+    $valid_statuses = ['Paid', 'Pending Confirmation', 'Upload again!'];
     if (in_array($new_status, $valid_statuses)) {
         try {
             $sql = "UPDATE transport_registration SET payment_status = ? WHERE id = ?";

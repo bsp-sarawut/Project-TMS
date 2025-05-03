@@ -1,59 +1,56 @@
 <?php
-    require_once 'condb.php';
-    include 'navbar.php';
+require_once 'condb.php';
+include 'navbar.php';
 
-    $stu_username = $_SESSION['user_name']; // ดึงค่าผู้ใช้ที่ล็อกอินอยู่
+$stu_username = $_SESSION['user_name']; // ดึงค่าผู้ใช้ที่ล็อกอินอยู่
 
-    // ฟังก์ชันแปลงหมายเลขเดือนเป็นชื่อเดือนภาษาไทย
-    function getMonthName($monthNumber)
-    {
-        $months = [
-            1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
-            5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
-            9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
-        ];
-        return $months[$monthNumber] ?? 'ไม่ทราบเดือน';
-    }
+// ฟังก์ชันแปลงหมายเลขเดือนเป็นชื่อเดือนภาษาไทย
+function getMonthName($monthNumber)
+{
+    $months = [
+        1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+        5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+        9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
+    ];
+    return $months[$monthNumber] ?? 'ไม่ทราบเดือน';
+}
 
-    // ดึงข้อมูลจากฐานข้อมูลโดย JOIN ตาราง routes และ transport_schedule
-    $sql = "SELECT tr.*,
-               r.province AS route_province_id,
-               r.amphur AS route_amphur_id,
-               r.location AS route_location,
-               ts.id AS schedule_id,   -- ดึง ID ของ available_dates
-               p.province_name,
-               a.amphur_name,
-               ts.available_dates,
-               ts.month AS schedule_month -- เพิ่มค่าเดือนจาก transport_schedule
-        FROM transport_registration tr
-        LEFT JOIN routes r ON tr.route_id = r.route_ID
-        LEFT JOIN transport_schedule ts ON tr.transport_schedule_id = ts.id
-        LEFT JOIN province p ON r.province = p.province_id
-        LEFT JOIN amphur a ON r.amphur = a.amphur_id
-        WHERE tr.stu_username = :stu_username
-        ORDER BY tr.created_at DESC"; 
-    // Prepare, bind, and execute the query
-    try {
-        $stmt = $conn->prepare($sql);
-        $stmt->bindParam(':stu_username', $stu_username, PDO::PARAM_STR);
-        $stmt->execute();
-        $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// ดึงข้อมูลจากฐานข้อมูลโดย JOIN ตาราง routes และ transport_schedule
+$sql = "SELECT tr.*,
+           r.province AS route_province_id,
+           r.amphur AS route_amphur_id,
+           r.location AS route_location,
+           ts.id AS schedule_id,
+           p.province_name,
+           a.amphur_name,
+           ts.available_dates,
+           ts.month AS schedule_month
+    FROM transport_registration tr
+    LEFT JOIN routes r ON tr.route_id = r.route_ID
+    LEFT JOIN transport_schedule ts ON tr.transport_schedule_id = ts.id
+    LEFT JOIN province p ON r.province = p.province_id
+    LEFT JOIN amphur a ON r.amphur = a.amphur_id
+    WHERE tr.stu_username = :stu_username
+    ORDER BY tr.created_at DESC";
+try {
+    $stmt = $conn->prepare($sql);
+    $stmt->bindParam(':stu_username', $stu_username, PDO::PARAM_STR);
+    $stmt->execute();
+    $registrations = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // ดึงรายการจังหวัดที่ไม่ซ้ำกันสำหรับฟิลเตอร์
-        $sql_provinces = "SELECT DISTINCT p.province_name 
-                          FROM transport_registration tr
-                          LEFT JOIN routes r ON tr.route_id = r.route_ID
-                          LEFT JOIN province p ON r.province = p.province_id
-                          WHERE tr.stu_username = :stu_username
-                          ORDER BY p.province_name";
-        $stmt_provinces = $conn->prepare($sql_provinces);
-        $stmt_provinces->bindParam(':stu_username', $stu_username, PDO::PARAM_STR);
-        $stmt_provinces->execute();
-        $provinces = $stmt_provinces->fetchAll(PDO::FETCH_COLUMN);
-    } catch (PDOException $e) {
-        // Handle error here
-        echo "Error: " . $e->getMessage();
-    }
+    $sql_provinces = "SELECT DISTINCT p.province_name 
+                      FROM transport_registration tr
+                      LEFT JOIN routes r ON tr.route_id = r.route_ID
+                      LEFT JOIN province p ON r.province = p.province_id
+                      WHERE tr.stu_username = :stu_username
+                      ORDER BY p.province_name";
+    $stmt_provinces = $conn->prepare($sql_provinces);
+    $stmt_provinces->bindParam(':stu_username', $stu_username, PDO::PARAM_STR);
+    $stmt_provinces->execute();
+    $provinces = $stmt_provinces->fetchAll(PDO::FETCH_COLUMN);
+} catch (PDOException $e) {
+    echo "Error: " . $e->getMessage();
+}
 ?>
 
 <!DOCTYPE html>
@@ -65,6 +62,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <style>
         body {
             background: linear-gradient(135deg, #1c2526 0%, #2c3e50 100%);
@@ -73,7 +71,7 @@
             margin: 0;
             position: relative;
             overflow-x: hidden;
-            padding-top: 80px; /* ป้องกันเนื้อหาทับกับ Navbar */
+            padding-top: 80px;
             color: #eceff1;
         }
         .container {
@@ -118,6 +116,8 @@
             height: 5px;
             background: linear-gradient(90deg, #ffca28, #ff8f00);
             transition: height 0.3s ease;
+            z-index: 0;
+            pointer-events: none;
         }
         .card:hover::before {
             height: 100%;
@@ -134,6 +134,8 @@
             flex-direction: column;
             justify-content: space-between;
             color: #b0bec5;
+            position: relative;
+            z-index: 1;
         }
         .card-body p {
             margin-bottom: 10px;
@@ -154,6 +156,10 @@
         .badge.bg-danger {
             background: #ef5350 !important;
         }
+        .badge.bg-warning {
+            background: #ffca28 !important;
+            color: #1c2526 !important;
+        }
         .receipt-img {
             width: 60px;
             height: 60px;
@@ -162,6 +168,8 @@
             border: 2px solid #ffca28;
             transition: transform 0.3s ease;
             cursor: pointer;
+            position: relative;
+            z-index: 2;
         }
         .receipt-img:hover {
             transform: scale(1.1);
@@ -186,7 +194,6 @@
             border-radius: 10px;
             border: 2px solid #ffca28;
         }
-        /* Search Button Styles */
         .search-toggle {
             background: #ffca28;
             color: #1c2526;
@@ -203,13 +210,12 @@
         .search-toggle:hover {
             background: #ffb300;
         }
-        /* Filter Styles */
         .filter-section {
             background: #2c3e50;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
-            display: none; /* ซ่อนเริ่มต้น */
+            display: none;
             flex-wrap: wrap;
             gap: 15px;
             align-items: center;
@@ -251,6 +257,32 @@
         .filter-section .btn-reset:hover {
             background: #c82333;
         }
+        .upload-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ffca28;
+            position: relative;
+            z-index: 2;
+        }
+        .upload-form input[type="file"] {
+            background: #37474f;
+            color: #eceff1;
+            border: 1px solid #ffca28;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .upload-form .btn-upload {
+            background: #4caf50;
+            color: #eceff1;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            transition: background 0.3s ease;
+        }
+        .upload-form .btn-upload:hover {
+            background: #388e3c;
+        }
         @media (max-width: 768px) {
             .container {
                 padding-top: 10px;
@@ -286,6 +318,9 @@
                 width: 100%;
             }
             .filter-section input[type="date"] {
+                width: 100%;
+            }
+            .upload-form input[type="file"] {
                 width: 100%;
             }
         }
@@ -324,7 +359,6 @@
         <?php endif; ?>
     </div>
 
-    <!-- ฟิลเตอร์การค้นหา -->
     <?php if (!empty($registrations)): ?>
         <div class="filter-section" id="filter-section">
             <div>
@@ -360,7 +394,8 @@
                 <select id="filter-status">
                     <option value="">ทั้งหมด</option>
                     <option value="Paid">Paid</option>
-                    <option value="Unpaid">Unpaid</option>
+                    <option value="Pending Confirmation">Pending Confirmation</option>
+                    <option value="Upload again!">Upload again</option>
                 </select>
             </div>
             <button class="btn-reset" onclick="resetFilters()">รีเซ็ต</button>
@@ -377,50 +412,45 @@
                      data-status="<?php echo htmlspecialchars($row['payment_status']); ?>">
                     <div class="card">
                         <div class="card-body">
-                            <!-- Month -->
                             <p><strong>เดือน:</strong> <?php echo getMonthName(htmlspecialchars($row['schedule_month'])) ?></p>
-
-                            <!-- Created At -->
                             <p><strong>วันที่ลงทะเบียน:</strong> <?php echo date("d/m/Y H:i", strtotime($row['created_at'])) ?></p>
-
-                            <!-- Days -->
                             <p><strong>จำนวนวันที่ขึ้นรถ:</strong> <?php echo htmlspecialchars($row['num_of_days']) ?> วัน</p>
-
-                            <!-- Available Dates -->
                             <p><strong>วันที่:</strong> <?php echo htmlspecialchars($row['available_dates']) ?></p>
-
-                            <!-- จังหวัด -->
                             <p><strong>จังหวัด:</strong> <?php echo htmlspecialchars($row['province_name']) ?></p>
-
-                            <!-- อำเภอ -->
                             <p><strong>อำเภอ:</strong> <?php echo htmlspecialchars($row['amphur_name']) ?></p>
-
-                            <!-- สถานที่ขึ้นรถ -->
                             <p><strong>สถานที่ขึ้นรถ:</strong> <?php echo htmlspecialchars($row['route_location']) ?></p>
-
-                            <!-- Total Price -->
                             <p><strong>ราคารวม:</strong> <?php echo number_format(htmlspecialchars($row['total_price']), 2) ?> ฿</p>
-
-                            <!-- Payment Status -->
                             <p><strong>สถานะการชำระเงิน:</strong>
-                                <span class="badge bg-<?php echo $row['payment_status'] == 'Paid' ? 'success' : 'danger' ?>">
+                                <span class="badge bg-<?php 
+                                    echo $row['payment_status'] == 'Paid' ? 'success' : 
+                                         ($row['payment_status'] == 'Upload again!' ? 'warning' : 'danger'); 
+                                ?>">
                                     <?php echo htmlspecialchars($row['payment_status']) ?>
                                 </span>
                             </p>
-
                             <div class="mb-2">
                                 <?php 
                                     $imagePath = $row['payment_receipt_image'] ? "./" . htmlspecialchars($row['payment_receipt_image']) : '';
-                                    // ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
                                     $fileExists = $imagePath && file_exists($imagePath);
                                 ?>
                                 <?php if (!empty($row['payment_receipt_image']) && $fileExists): ?>
-                                    <!-- Image to trigger the modal -->
                                     <img src="<?= $imagePath ?>" alt="ใบเสร็จ" class="receipt-img" data-image="<?= $imagePath ?>">
                                 <?php else: ?>
                                     <span class="text-muted">ไม่มีภาพ (ไฟล์ไม่พบ)</span>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($row['payment_status'] == 'Upload again!'): ?>
+                                <div class="upload-form">
+                                    <form class="receipt-upload-form" enctype="multipart/form-data">
+                                        <input type="hidden" name="registration_id" value="<?php echo htmlspecialchars($row['id']); ?>">
+                                        <div class="mb-2">
+                                            <label for="receipt_image_<?php echo $row['id']; ?>" class="form-label text-muted">อัปโหลดใบเสร็จใหม่:</label>
+                                            <input type="file" name="receipt_image" id="receipt_image_<?php echo $row['id']; ?>" accept="image/*" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-upload">อัปโหลด</button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -430,7 +460,6 @@
         <?php endif; ?>
     </div>
 
-    <!-- Single Modal for all images -->
     <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -447,21 +476,20 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize the modal for receipt images
     const modalElement = document.getElementById('receiptModal');
     const modalImage = document.getElementById('modalImage');
     const bsModal = new bootstrap.Modal(modalElement);
     let isModalOpen = false;
     let lastClickTime = 0;
-    const debounceDelay = 300; // Debounce delay in milliseconds
+    const debounceDelay = 300;
 
-    // Event delegation for all receipt images
     document.querySelector('.container').addEventListener('click', function(event) {
         if (!event.target.classList.contains('receipt-img')) return;
 
-        // Debounce: Ignore rapid successive clicks
         const currentTime = new Date().getTime();
         if (currentTime - lastClickTime < debounceDelay) {
             console.log('Click debounced, ignoring...');
@@ -469,7 +497,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         lastClickTime = currentTime;
 
-        // Prevent opening if modal is already open
         if (isModalOpen) {
             console.log('Modal is already open, ignoring click...');
             return;
@@ -481,32 +508,79 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Set the image source and show the modal
         modalImage.src = imageSrc;
         bsModal.show();
         isModalOpen = true;
         console.log('Modal opened with image:', imageSrc);
     });
 
-    // Handle modal close
     modalElement.addEventListener('hidden.bs.modal', function() {
-        modalImage.src = ''; // Clear the image source
+        modalImage.src = '';
         isModalOpen = false;
         console.log('Modal closed');
     });
 
-    // Handle modal show (for debugging)
     modalElement.addEventListener('show.bs.modal', function() {
         console.log('Modal is being shown');
     });
 
-    // ฟังก์ชันสำหรับแสดง/ซ่อนส่วนฟิลเตอร์
+    $('.receipt-upload-form').on('submit', function(e) {
+        e.preventDefault();
+        const form = $(this);
+        const formData = new FormData(this);
+        const card = form.closest('.registration-card');
+
+        $.ajax({
+            url: 'upload_receipt.php',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            success: function(response) {
+                if (response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ',
+                        text: 'อัปโหลดใบเสร็จสำเร็จ! สถานะเปลี่ยนเป็น Pending Confirmation',
+                        confirmButtonText: 'ตกลง'
+                    });
+                    // Update receipt image
+                    form.closest('.card').find('.receipt-img').attr('src', './' + response.image_path).attr('data-image', './' + response.image_path);
+                    // Update status badge
+                    form.closest('.card').find('.badge')
+                        .removeClass('bg-warning bg-success bg-danger')
+                        .addClass('bg-danger')
+                        .text(response.payment_status);
+                    // Update card data-status for filtering
+                    card.attr('data-status', response.payment_status);
+                    // Remove upload form
+                    form.closest('.upload-form').remove();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ข้อผิดพลาด',
+                        text: response.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ข้อผิดพลาด',
+                    text: 'เกิดข้อผิดพลาดในการอัปโหลด: ' + (xhr.responseJSON?.message || 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์'),
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        });
+    });
+
     window.toggleFilterSection = function() {
         const filterSection = document.getElementById('filter-section');
         filterSection.classList.toggle('active');
     };
 
-    // ฟังก์ชันสำหรับกรองข้อมูล
     function filterRegistrations() {
         const dateStart = document.getElementById('filter-date-start').value;
         const dateEnd = document.getElementById('filter-date-end').value;
@@ -522,25 +596,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const cardProvince = card.getAttribute('data-province');
             const cardStatus = card.getAttribute('data-status');
 
-            // ตรวจสอบวันที่ลงทะเบียน
             let matchesDate = true;
             if (dateStart || dateEnd) {
                 const start = dateStart ? new Date(dateStart) : new Date('1970-01-01');
                 const end = dateEnd ? new Date(dateEnd) : new Date('9999-12-31');
-                end.setHours(23, 59, 59, 999); // รวมทั้งวันสุดท้าย
+                end.setHours(23, 59, 59, 999);
                 matchesDate = cardDate >= start && cardDate <= end;
             }
 
-            // ตรวจสอบเดือน
             const matchesMonth = !month || cardMonth === month;
-
-            // ตรวจสอบจังหวัด
             const matchesProvince = !province || cardProvince === province;
-
-            // ตรวจสอบสถานะการชำระเงิน
             const matchesStatus = !status || cardStatus === status;
 
-            // แสดง/ซ่อนการ์ด
             if (matchesDate && matchesMonth && matchesProvince && matchesStatus) {
                 card.style.display = '';
             } else {
@@ -549,14 +616,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // เพิ่ม Event Listener สำหรับฟิลเตอร์
     document.getElementById('filter-date-start')?.addEventListener('change', filterRegistrations);
     document.getElementById('filter-date-end')?.addEventListener('change', filterRegistrations);
     document.getElementById('filter-month')?.addEventListener('change', filterRegistrations);
     document.getElementById('filter-province')?.addEventListener('change', filterRegistrations);
     document.getElementById('filter-status')?.addEventListener('change', filterRegistrations);
 
-    // ฟังก์ชันรีเซ็ตฟิลเตอร์
     window.resetFilters = function() {
         document.getElementById('filter-date-start').value = '';
         document.getElementById('filter-date-end').value = '';
